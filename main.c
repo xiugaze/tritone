@@ -26,9 +26,16 @@ int main(void) {
         printf("tritone> ");
         fgets(buffer, 300, stdin);
         node* root = parse_input(buffer);
-        vector result = evaluate_ast(root);
-        if(!is_max(result)) {
-            printf("%s\n", vector_to_string(result));
+        print_ast(root);
+        value result = evaluate_ast(root);
+        if(!is_sentinel(result)) {
+
+            if(result.type == VAL_VECTOR) {
+                printf("%s\n", vector_to_string(result.vec));
+            } else {
+                printf("%.2f\n", result.scalar);
+            }
+
         }
         free_ast(root);
     } while(1);

@@ -1,6 +1,6 @@
 #ifndef AST_H
 #define AST_H
-    #include "vec.h";
+    #include "vec.h"
 
     typedef enum {
         TOKEN_IDENTIFIER,
@@ -38,8 +38,25 @@
         node* left;
         node* right;
     };
+
+
+    typedef enum {
+        VAL_VECTOR,
+        VAL_SCALAR,
+        VAL_SENTINEL,
+    } value_type;
+
+    typedef struct {
+        value_type type;
+        union {
+            float scalar;
+            vector vec;
+        };
+    } value;
+
     node* parse_input(char* input);
     void print_ast(node* root);
-    vector evaluate_ast(node* n);
+    value evaluate_ast(node* n);
+    int is_sentinel(value v);
 
 #endif 
