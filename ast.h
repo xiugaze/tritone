@@ -1,0 +1,45 @@
+#ifndef AST_H
+#define AST_H
+    #include "vec.h";
+
+    typedef enum {
+        TOKEN_IDENTIFIER,
+        TOKEN_EQUALS,
+        TOKEN_COMMA,
+        TOKEN_PLUS,
+        TOKEN_MINUS,
+        TOKEN_STAR,
+        TOKEN_SLASH,
+        TOKEN_END,
+        TOKEN_LPAREN,
+        TOKEN_RPAREN,
+        TOKEN_LBRACKET,
+        TOKEN_RBRACKET,
+        TOKEN_CONST
+    } token_type;
+
+    typedef struct {
+        token_type type;
+        char* name;
+    } token;
+
+    typedef enum {
+        NODE_ASSIGNMENT,
+        NODE_OPERATION,
+        NODE_IDENTIFIER,
+        NODE_VECTOR,
+        NODE_CONSTANT,
+    } node_type;
+
+    typedef struct node node;
+    struct node {
+        char* value;
+        node_type type;
+        node* left;
+        node* right;
+    };
+    node* parse_input(char* input);
+    void print_ast(node* root);
+    vector evaluate_ast(node* n);
+
+#endif 
