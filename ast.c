@@ -568,6 +568,7 @@ void print_help() {
            " clear: clear the screen\n"
            " free: free all variables\n"
            " list: list all variables\n"
+           " this is a change for git to pick up\n"
            );
 }
 
