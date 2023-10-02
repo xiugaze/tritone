@@ -29,8 +29,12 @@ float vec_dot(vector a, vector b) {
     return (a.i * b.i) + (a.j * b.j) + (a.k * b.k);
 }
 
-float vec_cross(vector a, vector b) {
-    // TODO
+vector vec_cross(vector a, vector b) {
+    float i = (a.j * b.k)  - (a.k * b.j);
+    float j = -((a.i * b.k)  - (a.k * b.i));
+    float k = (a.i * b.j)  - (a.j * b.i);
+    vector cross = {i, j, k};
+    return cross;
 }
 
 char* vector_to_string(vector v) {

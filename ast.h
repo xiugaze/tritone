@@ -59,6 +59,7 @@
 
     node* parse_input(char* input);
     void print_ast(node* root);
+    void free_ast(node* root);
     value evaluate_ast(node* n);
     char* value_to_string(value v);
 

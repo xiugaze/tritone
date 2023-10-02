@@ -12,7 +12,7 @@
     vector vec_sub(vector a, vector b);
     vector vec_mul(vector a, vector b);
     float vec_dot(vector a, vector b);
-    float vec_cross(vector a, vector b);
+    vector vec_cross(vector a, vector b);
     char* vector_to_string(vector v);
     vector vec_max(void);
     int is_max(vector a);

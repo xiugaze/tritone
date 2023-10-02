@@ -10,8 +10,8 @@
  *  1. <statement> := <statement><statement> 
  *  2. <statement> := <assignment> | <expression>
  *  3. <assignment> := <identifier> = <expression> 
- *  4. <expression> := <term> | <term> {+|-} <expression> 
- *  5. <term> := <factor> | <factor> {*|/} <term>
+ *  4. <expression> := <term> | <term> { + | - } <expression> 
+ *  5. <term> := <factor> | <factor> { * | / | .| X } <term>
  *  6. <factor> := <identifier> | <vector> | <constant> |(<expression>)
  *  7. <identifier> := [a-zA-Z]+
  *  8. <vector> := { <constant>, <constant>, <constant> }
@@ -75,7 +75,7 @@ token find_next_token(char* input, int* position) {
             tok.type = TOKEN_DOT;
             (*position)++;
             break;
-        case '/':
+        case 'X':
             tok.name = "X";
             tok.type = TOKEN_CROSS;
             (*position)++;
@@ -204,22 +204,18 @@ node* parse_constant(token *tokens, int *position);
 node* parse_value(token *tokens, int *position);
 node* parse_assignment(token* tokens, int* position);
 
-// static value ans = sentinel();
 node* parse_input(char* input) {
     token* tokens = lex(input);
     int position = 0;
-    node* root = parse_statement(tokens, &position);
-    root->is_root = 1;
-    return root;
+    return parse_statement(tokens, &position);
 }
-
-// value ans() {
-//     return ans;
-// }
 
 node* parse_statement(token *tokens, int* position) {
     if(tokens[*position].type == TOKEN_IDENTIFIER && tokens[*position + 1].type == TOKEN_EQUALS) {
         return parse_assignment(tokens, position);
+    } else if(tokens[*position].type == TOKEN_EQUALS) {
+        printf("Error: assignment with no identifier\n");
+        return NULL;
     } else {
         return parse_expression(tokens, position);
     }
@@ -235,12 +231,8 @@ node* parse_statement(token *tokens, int* position) {
  */
 node* parse_assignment(token* tokens, int* position) {
     node* identifier = parse_identifier(tokens, position);
-    (*position)++;  // consume =
-    // if(tokens[*position].type == TOKEN_CONST) {
-    //     return create_node(NODE_ASSIGNMENT, "=", identifier, parse_value(tokens, position));
-    // } else {
-        return create_node(NODE_ASSIGNMENT, "=", identifier, parse_expression(tokens, position));
-    // }
+    (*position)++;  
+    return create_node(NODE_ASSIGNMENT, "=", identifier, parse_expression(tokens, position));
 }
 
 node* parse_expression(token* tokens, int* position) {
@@ -257,7 +249,12 @@ node* parse_expression(token* tokens, int* position) {
 node* parse_term(token* tokens, int* position) {
     node* factor = parse_factor(tokens, position);
 
-    while(tokens[*position].type == TOKEN_STAR || tokens[*position].type == TOKEN_SLASH) {
+    while(
+            tokens[*position].type == TOKEN_STAR || 
+            tokens[*position].type == TOKEN_SLASH || 
+            tokens[*position].type == TOKEN_CROSS || 
+            tokens[*position].type == TOKEN_DOT
+        ) {
         char* operator = tokens[(*position)].name;
         (*position)++;
         node* right = parse_factor(tokens, position);
@@ -285,12 +282,10 @@ node* parse_factor(token* tokens, int* position) {
     } else if(tokens[*position].type == TOKEN_CONST) { 
         return parse_value(tokens, position);
     } else {
-        printf("error at position %d in parse_factor\n", *position);
-        // error condition;
+        printf("Error at position %d near token '%s'\n",
+            *position, tokens[*position-1].name);
         return NULL;
     }
-
-
 }
 
 /**
@@ -325,11 +320,15 @@ node* parse_value(token* tokens, int* position) {
         node* k;
 
         token next = tokens[*position];
+        // If there's two constants in a row
         if(next.type != TOKEN_END && next.type == TOKEN_CONST) {
             j = parse_constant(tokens, position);
+
             if(tokens[*position].type == TOKEN_COMMA) {
                 (*position)++;
             }
+
+            // If there's three constants
             if(tokens[*position].type != TOKEN_END) {
                 k = parse_constant(tokens, position);
                 if(tokens[*position].type == TOKEN_COMMA) {
@@ -338,14 +337,11 @@ node* parse_value(token* tokens, int* position) {
             } else {
                 k = create_node(NODE_CONSTANT, "0", NULL, NULL);
             }
-//        } else if(next.type != TOKEN_END && next.type != TOKEN_CONST) {
+            return create_node(NODE_VECTOR, NULL, i, create_node(NODE_VECTOR, NULL, j, k));
         } else {
-            printf("parse_value found constant\n");
-            printf("type: %d\n", i->type);
+            // there's only one constant
             return i;
         }
-
-        return create_node(NODE_VECTOR, NULL, i, create_node(NODE_VECTOR, NULL, j, k));
     } else {
         return NULL;
     }
@@ -391,19 +387,6 @@ void print_ast(node* root) {
     print_ast_recursive(root, 0);
 }
 
-char* value_to_string(value v) {
-    static char buffer[200];
-    if(!is_sentinel(v)) {
-        if(v.type == VAL_VECTOR) {
-            snprintf(buffer, 200, "%s\n", vector_to_string(v.vec));
-        } else {
-            snprintf(buffer, 200, "%.2f\n", v.scalar);
-        }
-    }
-    return buffer;
-
-}
-
 value make_value_from_vector(vector v) {
     value r;
     r.type = VAL_VECTOR;
@@ -421,7 +404,6 @@ value make_value_from_scalar(float f) {
 value sentinel() {
     value r ;
     r.type = VAL_SENTINEL;
-    r.scalar;
     return r;
 }
 
@@ -429,9 +411,23 @@ int is_sentinel(value s) {
     return s.type == VAL_SENTINEL;
 }
 
+char* value_to_string(value v) {
+    static char buffer[200];
+    if(!is_sentinel(v)) {
+        if(v.type == VAL_VECTOR) {
+            snprintf(buffer, 200, "%s\n", vector_to_string(v.vec));
+        } else {
+            snprintf(buffer, 200, "%.2f\n", v.scalar);
+        }
+    } else {
+        snprintf(buffer, 200, "");
+    }
+    return buffer;
+
+}
+
 value handle_asssignemnt(node* n) {
     if(n->left == NULL || n->left->type != NODE_IDENTIFIER || n->right == NULL) {
-        printf("Error: empty node\n");
         return sentinel();
     }
 
@@ -495,74 +491,99 @@ value handle_identifier(node* n) {
     }
 }
 
+value handle_operation(node*n) {
+    if(!strcmp(n->value, "+")) {
+
+        value left = evaluate_ast(n->left);
+        value right = evaluate_ast(n->right);
+
+        if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
+            vector sum = vec_add(left.vec, right.vec);
+            return make_value_from_vector(sum);
+        } else if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
+            float sum = left.scalar + right.scalar;
+            value v = make_value_from_scalar(sum);
+            return v;
+        } else {
+            printf("Error: addition not implemented for scalar + vector\n");
+            return sentinel();
+        }
+    } else if(!strcmp(n->value, "-")) { 
+        value left = evaluate_ast(n->left);
+        value right = evaluate_ast(n->right);
+
+        if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
+            vector sum = vec_sub(left.vec, right.vec);
+            return make_value_from_vector(sum);
+        } else if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
+            float sum = left.scalar - right.scalar;
+            return make_value_from_scalar(sum);
+        } else {
+            printf("Error: subtraction not implemented for scalar + vector\n");
+            return sentinel();
+        }
+    } else if(!strcmp(n->value, "*")) { 
+
+        value left = evaluate_ast(n->left);
+        value right = evaluate_ast(n->right);
+
+        if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
+            vector sum = vec_mul(left.vec, right.vec);
+            return make_value_from_vector(sum);
+        } else if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
+            float sum = left.scalar * right.scalar;
+            return make_value_from_scalar(sum);
+        } else if(left.type == VAL_VECTOR && right.type == VAL_SCALAR) {
+            float i = left.vec.i * right.scalar;
+            float j = left.vec.j * right.scalar;
+            float k = left.vec.k * right.scalar;
+            vector product = {i, j, k};
+            return make_value_from_vector(product);
+        } else {
+            float i = right.vec.i * left.scalar;
+            float j = right.vec.j * left.scalar;
+            float k = right.vec.k * left.scalar;
+            vector product = {i, j, k};
+            return make_value_from_vector(product);
+        }
+    } else if(!strcmp(n->value, ".")) { 
+        value left = evaluate_ast(n->left);
+        value right = evaluate_ast(n->right);
+
+        if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
+            float sum = vec_dot(left.vec, right.vec);
+            return make_value_from_scalar(sum);
+        } else { 
+            printf("Error: dot product not supported for scalars");
+            return sentinel();
+        }
+    } else if(!strcmp(n->value, "X")) { 
+        value left = evaluate_ast(n->left);
+        value right = evaluate_ast(n->right);
+
+        if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
+            vector cross = vec_cross(left.vec, right.vec);
+            return make_value_from_vector(cross);
+        } else { 
+            printf("Error: cross product not supported for scalars");
+            return sentinel();
+        }
+    } else {
+        return sentinel();
+    }
+
+}
+
 
 
 value evaluate_ast(node* n) {
     if(n == NULL) {
-        // TODO: Handle this case
-        printf("Error: empty node");
         return sentinel();
     } 
 
     switch(n->type) {
         case(NODE_OPERATION):
-            if(!strcmp(n->value, "+")) {
-
-                value left = evaluate_ast(n->left);
-                value right = evaluate_ast(n->right);
-
-                if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
-                    vector sum = vec_add(left.vec, right.vec);
-                    return make_value_from_vector(sum);
-                } else if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
-                    float sum = left.scalar + right.scalar;
-                    value v = make_value_from_scalar(sum);
-                    return v;
-                } else {
-                    printf("Error: addition not implemented for scalar + vector\n");
-                    return sentinel();
-                }
-            } else if(!strcmp(n->value, "-")) { 
-                value left = evaluate_ast(n->left);
-                value right = evaluate_ast(n->right);
-
-                if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
-                    vector sum = vec_sub(left.vec, right.vec);
-                    return make_value_from_vector(sum);
-                } else if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
-                    float sum = left.scalar - right.scalar;
-                    return make_value_from_scalar(sum);
-                } else {
-                    printf("Error: subtraction not implemented for scalar + vector\n");
-                    return sentinel();
-                }
-            } else if(!strcmp(n->value, "*")) { 
-
-                value left = evaluate_ast(n->left);
-                value right = evaluate_ast(n->right);
-
-                if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
-                    vector sum = vec_mul(left.vec, right.vec);
-                    return make_value_from_vector(sum);
-                } else if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
-                    float sum = left.scalar * right.scalar;
-                    return make_value_from_scalar(sum);
-                } else if(left.type == VAL_VECTOR && right.type == VAL_SCALAR) {
-                    float i = left.vec.i * right.scalar;
-                    float j = left.vec.j * right.scalar;
-                    float k = left.vec.k * right.scalar;
-                    vector product = {i, j, k};
-                    return make_value_from_vector(product);
-                } else {
-                    float i = right.vec.i * left.scalar;
-                    float j = right.vec.j * left.scalar;
-                    float k = right.vec.k * left.scalar;
-                    vector product = {i, j, k};
-                    return make_value_from_vector(product);
-                }
-            } else {
-                // err
-            }
+            return handle_operation(n);
             break;
         case(NODE_IDENTIFIER):
             return handle_identifier(n);
@@ -579,5 +600,6 @@ value evaluate_ast(node* n) {
         case(NODE_CONSTANT):
             return make_value_from_scalar(atof(n->value));
         default:
+            return sentinel();
     }
 }

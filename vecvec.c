@@ -74,7 +74,7 @@ int insert_vector(vector vec, char* name) {
  */
 vec_cell* get_vector(char* name) {
     for(int i = 0; i < MAX_VECS; i++) {
-        if(!strcmp(name, vectors[i].name)) {
+        if(!strcmp(name, vectors[i].name) && vectors[i].state == CLOSED) {
             return &vectors[i];
         }
     }
