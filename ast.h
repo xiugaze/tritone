@@ -15,6 +15,8 @@
         TOKEN_RPAREN,
         TOKEN_LBRACKET,
         TOKEN_RBRACKET,
+        TOKEN_DOT,
+        TOKEN_CROSS,
         TOKEN_CONST
     } token_type;
 
@@ -35,6 +37,7 @@
     struct node {
         char* value;
         node_type type;
+        int is_root;
         node* left;
         node* right;
     };
@@ -57,6 +60,6 @@
     node* parse_input(char* input);
     void print_ast(node* root);
     value evaluate_ast(node* n);
-    int is_sentinel(value v);
+    char* value_to_string(value v);
 
 #endif 

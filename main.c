@@ -23,20 +23,15 @@ int main(void) {
 
     char buffer[300];
     do {
-        printf("tritone> ");
+        printf("\033[0;35m");
+        printf("tritone");
+        printf("\033[0m");
+        printf("> ");
         fgets(buffer, 300, stdin);
         node* root = parse_input(buffer);
-        print_ast(root);
+//        print_ast(root);
         value result = evaluate_ast(root);
-        if(!is_sentinel(result)) {
-
-            if(result.type == VAL_VECTOR) {
-                printf("%s\n", vector_to_string(result.vec));
-            } else {
-                printf("%.2f\n", result.scalar);
-            }
-
-        }
+        printf("%s", value_to_string(result));
         free_ast(root);
     } while(1);
     return 0;

@@ -70,6 +70,16 @@ token find_next_token(char* input, int* position) {
             tok.type = TOKEN_SLASH;
             (*position)++;
             break;
+        case '.':
+            tok.name = ".";
+            tok.type = TOKEN_DOT;
+            (*position)++;
+            break;
+        case '/':
+            tok.name = "X";
+            tok.type = TOKEN_CROSS;
+            (*position)++;
+            break;
         case '=':
             tok.name = "=";
             tok.type = TOKEN_EQUALS;
@@ -180,6 +190,7 @@ node* create_node(node_type type, char* value, node* left, node* right) {
     n->value = value;
     n->left = left;
     n->right = right;
+    n->is_root = 0;
     return n;
 }
 
@@ -193,12 +204,18 @@ node* parse_constant(token *tokens, int *position);
 node* parse_value(token *tokens, int *position);
 node* parse_assignment(token* tokens, int* position);
 
+// static value ans = sentinel();
 node* parse_input(char* input) {
     token* tokens = lex(input);
     int position = 0;
     node* root = parse_statement(tokens, &position);
+    root->is_root = 1;
     return root;
 }
+
+// value ans() {
+//     return ans;
+// }
 
 node* parse_statement(token *tokens, int* position) {
     if(tokens[*position].type == TOKEN_IDENTIFIER && tokens[*position + 1].type == TOKEN_EQUALS) {
@@ -219,11 +236,11 @@ node* parse_statement(token *tokens, int* position) {
 node* parse_assignment(token* tokens, int* position) {
     node* identifier = parse_identifier(tokens, position);
     (*position)++;  // consume =
-    if(tokens[*position].type == TOKEN_CONST) {
-        return create_node(NODE_ASSIGNMENT, "=", identifier, parse_value(tokens, position));
-    } else {
+    // if(tokens[*position].type == TOKEN_CONST) {
+    //     return create_node(NODE_ASSIGNMENT, "=", identifier, parse_value(tokens, position));
+    // } else {
         return create_node(NODE_ASSIGNMENT, "=", identifier, parse_expression(tokens, position));
-    }
+    // }
 }
 
 node* parse_expression(token* tokens, int* position) {
@@ -298,23 +315,6 @@ node* parse_constant(token* tokens, int* position) {
  * @return node* 
  */
 node* parse_value(token* tokens, int* position) {
-    // if(tokens[*position].type == TOKEN_CONST) {
-    //     // consume {
-    //     (*position)++;
-    //     node* i = parse_constant(tokens, position);
-    //     if(tokens[*position].type == TOKEN_COMMA) {
-    //         (*position)++;
-    //     }
-    //     node* j = parse_constant(tokens, position);
-    //     if(tokens[*position].type == TOKEN_COMMA) {
-    //         (*position)++;
-    //     }
-    //     node* k = parse_constant(tokens, position);
-    //     if(tokens[*position].type == TOKEN_COMMA) {
-    //         (*position)++;
-    //     }
-    //     // consume {
-    //     (*position)++;
     if(tokens[*position].type == TOKEN_CONST) {
         node* i = parse_constant(tokens, position);
         if(tokens[*position].type == TOKEN_COMMA) {
@@ -347,7 +347,6 @@ node* parse_value(token* tokens, int* position) {
 
         return create_node(NODE_VECTOR, NULL, i, create_node(NODE_VECTOR, NULL, j, k));
     } else {
-        // help
         return NULL;
     }
 }
@@ -392,6 +391,19 @@ void print_ast(node* root) {
     print_ast_recursive(root, 0);
 }
 
+char* value_to_string(value v) {
+    static char buffer[200];
+    if(!is_sentinel(v)) {
+        if(v.type == VAL_VECTOR) {
+            snprintf(buffer, 200, "%s\n", vector_to_string(v.vec));
+        } else {
+            snprintf(buffer, 200, "%.2f\n", v.scalar);
+        }
+    }
+    return buffer;
+
+}
+
 value make_value_from_vector(vector v) {
     value r;
     r.type = VAL_VECTOR;
@@ -425,25 +437,53 @@ value handle_asssignemnt(node* n) {
 
     value result = evaluate_ast(n->right);
     if(!is_sentinel(result)) {
-        insert_vector(result.vec, n->left->value);
+        if(result.type == VAL_VECTOR) {
+            insert_vector(result.vec, n->left->value);
+            return result;
+        } else {
+            printf("Warning: Cannot assign scalar to variable\n");
+            printf("Assigning scalar as field i\n");
+            vector v = {result.scalar, 0, 0};
+            insert_vector(v, n->left->value);
+            value r;
+            r.type = VAL_VECTOR;
+            r.vec = v;
+            return r;
+        }
+    } else {
+        return sentinel();
     }
-    return result;
 
 }
 
+void print_help() {
+    printf("tritone: very bad vector calculator\n" 
+           "- store a vector: a = 1, 2, 3\n"
+           "- scalar operations: 1+2, 6-9, 5*3, 9/1,\n"
+           "- vector operations: a + b, a + (1, 2, 3 * c)\n" 
+           "\t-supports addition, subtraction, scalar multiplication," 
+           " scalar division, cross product, dot product.\n"
+           );
+}
 
 value handle_identifier(node* n) {
     if(!strcmp(n->value, "quit")) {
         exit(0);
-    } else if(!strcmp(n->value, "clear")) {
+    } else if(!strcmp(n->value, "free")) {
         int cleared = clear_vectors();
-        printf("Cleared %d vectors\n", cleared);
+        printf("Freed %d vectors\n", cleared);
         return sentinel();
     } else if(!strcmp(n->value, "list")) {
         list_vectors();
         return sentinel();
-    } else if(!strcmp(n->value, "ans")) {
-        return ans();
+    } else if(!strcmp(n->value, "help")) {
+        print_help();
+        return sentinel();
+    } else if(!strcmp(n->value, "clear")) {
+        printf("\033[2J"); // clear screen
+        printf("\033[H"); // go home
+
+        return sentinel();
     } else {
         vec_cell* v = get_vector(n->value);
         if(v != NULL) {
@@ -541,14 +581,3 @@ value evaluate_ast(node* n) {
         default:
     }
 }
-
-// int main() {
-//     char input[] = "var1 = (a * b) - c";
-//     token* tokens = lex(input);
-//     int index = 0;
-
-
-//     int pos = 0;
-//     node* n = parse_statement(tokens, &pos);
-//     printf("%s\n", n->right->value);
-// }
