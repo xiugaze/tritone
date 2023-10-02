@@ -4,7 +4,7 @@ LDFLAGS=                    # linker arguments
 SOURCES=main.c vec.c vecvec.c ast.c  # source files
 OBJECTS=$(patsubst %.c,build/%.o,$(SOURCES))
 DEPS=$(patsubst %.o,%.d,$(OBJECTS))
-EXECUTABLE=build/vec
+EXECUTABLE=build/tritone
 
 all: $(EXECUTABLE)
 

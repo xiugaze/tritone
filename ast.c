@@ -14,7 +14,7 @@
  *  5. <term> := <factor> | <factor> { * | / | .| X } <term>
  *  6. <factor> := <identifier> | <vector> | <constant> |(<expression>)
  *  7. <identifier> := [a-zA-Z]+
- *  8. <vector> := { <constant>, <constant>, <constant> }
+ *  8. <value> := { <constant> | <constant>, <constant>, <constant> }
  * 
  * Course: CPE2600-121
  * Assignment: Lab Wk 5
@@ -204,12 +204,26 @@ node* parse_constant(token *tokens, int *position);
 node* parse_value(token *tokens, int *position);
 node* parse_assignment(token* tokens, int* position);
 
+/**
+ * @brief Lexes and parses an input string according to G
+ * 
+ * @param input 
+ * @return node* 
+ */
 node* parse_input(char* input) {
     token* tokens = lex(input);
     int position = 0;
     return parse_statement(tokens, &position);
 }
 
+/**
+ * @brief Parses a statement and returns its root node
+ *  <statement> := <assignment> | <expression>
+ * 
+ * @param tokens 
+ * @param position 
+ * @return node* 
+ */
 node* parse_statement(token *tokens, int* position) {
     if(tokens[*position].type == TOKEN_IDENTIFIER && tokens[*position + 1].type == TOKEN_EQUALS) {
         return parse_assignment(tokens, position);
@@ -223,8 +237,8 @@ node* parse_statement(token *tokens, int* position) {
 
 /**
  * @brief 
- *        =
- *   <id>    <exp>
+ * Parses an assignment and returns its root node
+ * <assignment> := <identifier> = <expression> 
  * @param tokens 
  * @param position 
  * @return node* 
@@ -246,6 +260,13 @@ node* parse_expression(token* tokens, int* position) {
     return term;
 }
 
+/**
+ * @brief Parses a term and returns it's root node
+ * <term> := <factor> | <factor> { * | / | .| X } <term>
+ * @param tokens 
+ * @param position 
+ * @return node* 
+ */
 node* parse_term(token* tokens, int* position) {
     node* factor = parse_factor(tokens, position);
 
@@ -265,6 +286,7 @@ node* parse_term(token* tokens, int* position) {
 
 /**
  * @brief 
+ * Parses a factor and returns its root node
  * <factor> -> <id> | V | (<exp>)
  * @param tokens 
  * @param position 
@@ -278,7 +300,6 @@ node* parse_factor(token* tokens, int* position) {
         return expression;
     } else if(tokens[*position].type == TOKEN_IDENTIFIER) { 
         return parse_identifier(tokens, position);
-    // } else if(tokens[*position].type == TOKEN_LBRACKET) { 
     } else if(tokens[*position].type == TOKEN_CONST) { 
         return parse_value(tokens, position);
     } else {
@@ -304,7 +325,8 @@ node* parse_constant(token* tokens, int* position) {
 
 /**
  * @brief 
- *  V -> { <const>, <const>, <const> }
+ *  Parses a value and returns its root node
+ *  V -> { <const> | <const>, <const>, <const> }
  * @param tokens 
  * @param position 
  * @return node* 
@@ -334,6 +356,10 @@ node* parse_value(token* tokens, int* position) {
                 if(tokens[*position].type == TOKEN_COMMA) {
                     (*position)++;
                 }
+                if(tokens[*position].type == TOKEN_CONST) {
+                    printf("Warning: Only 3D vectors are supported. Using"
+                           " first three tokens.\n");
+                };
             } else {
                 k = create_node(NODE_CONSTANT, "0", NULL, NULL);
             }
@@ -347,6 +373,17 @@ node* parse_value(token* tokens, int* position) {
     }
 }
 
+
+
+
+/**
+ * @brief Parses an identifier and returns it's node
+ * 
+ * <identifier> := [a-zA-Z]+
+ * @param tokens 
+ * @param position 
+ * @return node* 
+ */
 node* parse_identifier(token* tokens, int* position) {
     char* name = tokens[(*position)].name;
     (*position)++;
@@ -354,6 +391,11 @@ node* parse_identifier(token* tokens, int* position) {
 }
 
 
+/**
+ * @brief Recursively frees a tree given its root node
+ * 
+ * @param n root node
+ */
 void free_ast(node* n) {
     if (n == NULL) {
         return;
@@ -364,6 +406,12 @@ void free_ast(node* n) {
     free(n);
 }
 
+/**
+ * @brief Recursively prints an AST node given its depth
+ * 
+ * @param node 
+ * @param depth 
+ */
 void print_ast_recursive(node* node, int depth) {
     if (node == NULL) {
         return;
@@ -382,11 +430,22 @@ void print_ast_recursive(node* node, int depth) {
     print_ast_recursive(node->right, depth + 1);
 }
 
+/**
+ * @brief Recursively prints a tree given it's root node
+ * 
+ * @param root 
+ */
 void print_ast(node* root) {
     printf("Abstract Syntax Tree:\n");
     print_ast_recursive(root, 0);
 }
 
+/**
+ * @brief Converts a vector to a value struct
+ * 
+ * @param v 
+ * @return value 
+ */
 value make_value_from_vector(vector v) {
     value r;
     r.type = VAL_VECTOR;
@@ -394,6 +453,12 @@ value make_value_from_vector(vector v) {
     return r;
 }
 
+/**
+ * @brief Converts a scalar type to a struct
+ * 
+ * @param f 
+ * @return value 
+ */
 value make_value_from_scalar(float f) {
     value r;
     r.type = VAL_SCALAR;
@@ -401,16 +466,33 @@ value make_value_from_scalar(float f) {
     return r;
 }
 
+/**
+ * @brief Returns the sentinel value struct
+ * 
+ * @return value 
+ */
 value sentinel() {
     value r ;
     r.type = VAL_SENTINEL;
     return r;
 }
 
+/**
+ * @brief returns true if a value is the sentinel value
+ * 
+ * @param s 
+ * @return int 
+ */
 int is_sentinel(value s) {
     return s.type == VAL_SENTINEL;
 }
 
+/**
+ * @brief Converts a value to a string and returns it
+ * 
+ * @param v 
+ * @return char* 
+ */
 char* value_to_string(value v) {
     static char buffer[200];
     if(!is_sentinel(v)) {
@@ -420,12 +502,18 @@ char* value_to_string(value v) {
             snprintf(buffer, 200, "%.2f\n", v.scalar);
         }
     } else {
-        snprintf(buffer, 200, "");
+        snprintf(buffer, 200, "%s", "");
     }
     return buffer;
 
 }
 
+/**
+ * @brief Evaluates an assignment node and returns it's value
+ * 
+ * @param n 
+ * @return value 
+ */
 value handle_asssignemnt(node* n) {
     if(n->left == NULL || n->left->type != NODE_IDENTIFIER || n->right == NULL) {
         return sentinel();
@@ -452,6 +540,10 @@ value handle_asssignemnt(node* n) {
 
 }
 
+/**
+ * @brief Prints the help text
+ * 
+ */
 void print_help() {
     printf("tritone: very bad vector calculator\n" 
            "- store a vector: a = 1, 2, 3\n"
@@ -459,9 +551,20 @@ void print_help() {
            "- vector operations: a + b, a + (1, 2, 3 * c)\n" 
            "\t-supports addition, subtraction, scalar multiplication," 
            " scalar division, cross product, dot product.\n"
+           " help: print this message\n"
+           " clear: clear the screen\n"
+           " free: free all variables\n"
+           " list: list all variables\n"
            );
 }
 
+/**
+ * @brief Handles identifiers nodes and processes relevant commands.
+ * If the identifier is not a command, returns the value, otherwise sentinel
+ * 
+ * @param n 
+ * @return value 
+ */
 value handle_identifier(node* n) {
     if(!strcmp(n->value, "quit")) {
         exit(0);
@@ -491,9 +594,14 @@ value handle_identifier(node* n) {
     }
 }
 
+/**
+ * @brief Handles vector and scalar operation nodes and returns their value
+ * 
+ * @param n 
+ * @return value 
+ */
 value handle_operation(node*n) {
     if(!strcmp(n->value, "+")) {
-
         value left = evaluate_ast(n->left);
         value right = evaluate_ast(n->right);
 
@@ -546,6 +654,17 @@ value handle_operation(node*n) {
             vector product = {i, j, k};
             return make_value_from_vector(product);
         }
+    } else if(!strcmp(n->value, "/")) { 
+
+        value left = evaluate_ast(n->left);
+        value right = evaluate_ast(n->right);
+
+        if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
+            return make_value_from_scalar(left.scalar/right.scalar);
+        } else {
+            printf("Error: invalid arguments to scalar division\n");
+            return sentinel();
+        }
     } else if(!strcmp(n->value, ".")) { 
         value left = evaluate_ast(n->left);
         value right = evaluate_ast(n->right);
@@ -554,7 +673,7 @@ value handle_operation(node*n) {
             float sum = vec_dot(left.vec, right.vec);
             return make_value_from_scalar(sum);
         } else { 
-            printf("Error: dot product not supported for scalars");
+            printf("Error: invalid arguments to dot product\n");
             return sentinel();
         }
     } else if(!strcmp(n->value, "X")) { 
@@ -565,7 +684,7 @@ value handle_operation(node*n) {
             vector cross = vec_cross(left.vec, right.vec);
             return make_value_from_vector(cross);
         } else { 
-            printf("Error: cross product not supported for scalars");
+            printf("Error: invalid arguments to cross product\n");
             return sentinel();
         }
     } else {
@@ -574,8 +693,14 @@ value handle_operation(node*n) {
 
 }
 
-
-
+/**
+ * @brief Evaluates an AST branch given the root node using
+ * recursive descent parsing (essentially pre-order traversal).
+ * Returns its value. 
+ * 
+ * @param n 
+ * @return value 
+ */
 value evaluate_ast(node* n) {
     if(n == NULL) {
         return sentinel();

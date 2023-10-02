@@ -62,5 +62,6 @@
     void free_ast(node* root);
     value evaluate_ast(node* n);
     char* value_to_string(value v);
+    void print_help();
 
 #endif 
