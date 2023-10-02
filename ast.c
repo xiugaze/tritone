@@ -4,7 +4,9 @@
  * @class CPE2600-121
  * @brief Helper routines for parsing an input string, constructing
  * an abstract syntax tree according to context free grammar G,
- * and evaluating the tree to a certain result.
+ * and evaluating the tree to a final result. Assignments are expressions,
+ * not statements, and evaluuate to the left hand side.
+ *
  * 
  * Let G := 
  *  1. <statement> := <statement><statement> 
@@ -135,7 +137,8 @@ token find_next_token(char* input, int* position) {
 
                 int size = 1;
 
-                while (isdigit(input[*position + size]) || input[*position + size] == '.') {
+                while (isdigit(input[*position + size]) 
+                    || input[*position + size] == '.') {
                     size++;
                 }
 
@@ -225,7 +228,8 @@ node* parse_input(char* input) {
  * @return node* 
  */
 node* parse_statement(token *tokens, int* position) {
-    if(tokens[*position].type == TOKEN_IDENTIFIER && tokens[*position + 1].type == TOKEN_EQUALS) {
+    if(tokens[*position].type == TOKEN_IDENTIFIER 
+        && tokens[*position + 1].type == TOKEN_EQUALS) {
         return parse_assignment(tokens, position);
     } else if(tokens[*position].type == TOKEN_EQUALS) {
         printf("Error: assignment with no identifier\n");
@@ -246,12 +250,18 @@ node* parse_statement(token *tokens, int* position) {
 node* parse_assignment(token* tokens, int* position) {
     node* identifier = parse_identifier(tokens, position);
     (*position)++;  
-    return create_node(NODE_ASSIGNMENT, "=", identifier, parse_expression(tokens, position));
+    return create_node(
+        NODE_ASSIGNMENT, 
+        "=", 
+        identifier, 
+        parse_expression(tokens, position)
+    );
 }
 
 node* parse_expression(token* tokens, int* position) {
     node* term = parse_term(tokens, position);
-    while(tokens[*position].type == TOKEN_PLUS || tokens[*position].type == TOKEN_MINUS) {
+    while(tokens[*position].type == TOKEN_PLUS 
+       || tokens[*position].type == TOKEN_MINUS) {
         char* operator = tokens[(*position)].name;
         (*position)++;
         node* right = parse_term(tokens, position);
@@ -311,7 +321,7 @@ node* parse_factor(token* tokens, int* position) {
 
 /**
  * @brief 
- * Constants are terminal values
+ * Parses a constant value
  * @param tokens 
  * @param position 
  * @return node* 
@@ -356,10 +366,13 @@ node* parse_value(token* tokens, int* position) {
                 if(tokens[*position].type == TOKEN_COMMA) {
                     (*position)++;
                 }
+
+                // If there's four right night to eachother
                 if(tokens[*position].type == TOKEN_CONST) {
                     printf("Warning: Only 3D vectors are supported. Using"
                            " first three tokens.\n");
                 };
+
             } else {
                 k = create_node(NODE_CONSTANT, "0", NULL, NULL);
             }
@@ -601,9 +614,11 @@ value handle_identifier(node* n) {
  * @return value 
  */
 value handle_operation(node*n) {
+    value left = evaluate_ast(n->left);
+    value right = evaluate_ast(n->right);
+
+    // Addition operations
     if(!strcmp(n->value, "+")) {
-        value left = evaluate_ast(n->left);
-        value right = evaluate_ast(n->right);
 
         if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
             vector sum = vec_add(left.vec, right.vec);
@@ -616,9 +631,8 @@ value handle_operation(node*n) {
             printf("Error: addition not implemented for scalar + vector\n");
             return sentinel();
         }
+    // Subtraction Operations
     } else if(!strcmp(n->value, "-")) { 
-        value left = evaluate_ast(n->left);
-        value right = evaluate_ast(n->right);
 
         if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
             vector sum = vec_sub(left.vec, right.vec);
@@ -630,10 +644,8 @@ value handle_operation(node*n) {
             printf("Error: subtraction not implemented for scalar + vector\n");
             return sentinel();
         }
+    // Multiplicaton functions
     } else if(!strcmp(n->value, "*")) { 
-
-        value left = evaluate_ast(n->left);
-        value right = evaluate_ast(n->right);
 
         if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
             vector sum = vec_mul(left.vec, right.vec);
@@ -654,10 +666,8 @@ value handle_operation(node*n) {
             vector product = {i, j, k};
             return make_value_from_vector(product);
         }
+    // Division operations
     } else if(!strcmp(n->value, "/")) { 
-
-        value left = evaluate_ast(n->left);
-        value right = evaluate_ast(n->right);
 
         if(left.type == VAL_SCALAR && right.type == VAL_SCALAR) { 
             return make_value_from_scalar(left.scalar/right.scalar);
@@ -665,9 +675,8 @@ value handle_operation(node*n) {
             printf("Error: invalid arguments to scalar division\n");
             return sentinel();
         }
+    // Dot produt
     } else if(!strcmp(n->value, ".")) { 
-        value left = evaluate_ast(n->left);
-        value right = evaluate_ast(n->right);
 
         if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
             float sum = vec_dot(left.vec, right.vec);
@@ -676,9 +685,8 @@ value handle_operation(node*n) {
             printf("Error: invalid arguments to dot product\n");
             return sentinel();
         }
+    // Cross product
     } else if(!strcmp(n->value, "X")) { 
-        value left = evaluate_ast(n->left);
-        value right = evaluate_ast(n->right);
 
         if(left.type == VAL_VECTOR && right.type == VAL_VECTOR) {
             vector cross = vec_cross(left.vec, right.vec);
@@ -690,7 +698,28 @@ value handle_operation(node*n) {
     } else {
         return sentinel();
     }
+}
 
+/**
+ * @brief Handles constructing vectors from vector root nodes:
+ * Vectors in memory are represented as: 
+ *          
+ *              NODE_VECTOR: null
+ *                 /         \
+ *                /           \
+ *      NODE_CONSTANT: i       NODE_VECTOR: null
+ *                              /           \ 
+ *                  NODE_CONSTANT: j     NODE_CONSTANT: k
+ * 
+ * @param n 
+ * @return value 
+ */
+value handle_vector(node* n) {
+    float i = atof(n->left->value);
+    float j = atof(n->right->left->value);
+    float k = atof(n->right->right->value);
+    vector v = {i, j, k};
+    return make_value_from_vector(v);
 }
 
 /**
@@ -717,11 +746,8 @@ value evaluate_ast(node* n) {
             return handle_asssignemnt(n);
             break;
         case(NODE_VECTOR):
-            float i = atof(n->left->value);
-            float j = atof(n->right->left->value);
-            float k = atof(n->right->right->value);
-            vector v = {i, j, k};
-            return make_value_from_vector(v);
+            return handle_vector(n);
+            break;
         case(NODE_CONSTANT):
             return make_value_from_scalar(atof(n->value));
         default:

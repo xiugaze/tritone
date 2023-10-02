@@ -1,5 +1,5 @@
 /**
- * @file ast.c
+ * @file vecvec.c
  * @author Caleb Andreano (andreanoc@msoe.edu)
  * @class CPE2600-121
  * @brief Array of vectors. Supports insertion and 

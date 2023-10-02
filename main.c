@@ -1,5 +1,5 @@
 /**
- * @file ast.c
+ * @file main.c
  * @author Caleb Andreano (andreanoc@msoe.edu)
  * @class CPE2600-121
  * @brief Tritone: a bad vector calculator
@@ -12,6 +12,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "vec.h"
 #include "vecvec.h"

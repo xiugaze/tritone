@@ -1,3 +1,15 @@
+/**
+ * @file vec.c
+ * @author Caleb Andreano (andreanoc@msoe.edu)
+ * @class CPE2600-121
+ * @brief 3-dimensional vector struct and related mathematical operations
+ * 
+ * 
+ * Course: CPE2600-121
+ * Assignment: Lab Wk 5
+ * @date 2023-10-01
+ */
+
 #include "vec.h"
 #include "vecvec.h"
 #include <stdio.h>
