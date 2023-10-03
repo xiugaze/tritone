@@ -5,7 +5,7 @@
  * @brief Helper routines for parsing an input string, constructing
  * an abstract syntax tree according to context free grammar G,
  * and evaluating the tree to a final result. Assignments are expressions,
- * not statements, and evaluuate to the left hand side.
+ * not statements, and evaluate to the left hand side.
  *
  * 
  * Let G := 
@@ -32,6 +32,7 @@
 #include "ast.h"
 #include "vec.h"
 #include "vecvec.h"
+#include "tritone.h"
 
 /**
  * @brief Returns the next valid token in the input buffer 
@@ -51,6 +52,7 @@ token find_next_token(char* input, int* position) {
     token tok;
     tok.name = NULL;
 
+    // Switch case on characters: Single character operators or identifiers
     switch(cur) {
         case '+':
             tok.name = "+";
@@ -118,6 +120,7 @@ token find_next_token(char* input, int* position) {
             (*position)++;
             break;
         default: 
+            // Identifiers must start with a letter and then can be alphanumeric
             if(isalpha(cur)) {
                 tok.type = TOKEN_IDENTIFIER;
                 
@@ -127,10 +130,14 @@ token find_next_token(char* input, int* position) {
                     size++;
                 }
 
+                // malloc the length of the identiifier + 1 for null terminator
                 tok.name = malloc(size + 1);
+                // copy name into malloced space
                 memcpy(tok.name, (input + (*position)), size);
                 tok.name[size] = '\0';
+                // advance the position pointer
                 (*position) += size;
+            // Constants always are numbers
             } else if (isdigit(cur) || cur == '.') {
                 // Parse numbers (integer or floating-point)
                 tok.type = TOKEN_CONST;
@@ -142,13 +149,16 @@ token find_next_token(char* input, int* position) {
                     size++;
                 }
 
+                // malloc the string length of the number + \0
                 tok.name = malloc(size + 1);
                 memcpy(tok.name, (input + (*position)), size);
                 tok.name[size] = '\0';
+                // advance the position pointer
                 (*position) += size;
 
             } else {
-                // not sure
+                printf("Invalid token %c at position %d, ignoring\n", 
+                    input[*position], *position);
             }
     }
     return tok;
@@ -161,10 +171,12 @@ token find_next_token(char* input, int* position) {
  * @return token* 
  */
 token* lex(char* input) {
+    static int capacity = 100;
     int position = 0;
-    int capacity = 100;
     int size = 0;
+    // maximum number of tokens is hardcoded to 100;
     token* tokens = malloc(capacity * sizeof(token));
+
     while(1) {
         token tok = find_next_token(input, &position);
 
@@ -198,14 +210,14 @@ node* create_node(node_type type, char* value, node* left, node* right) {
 }
 
 
-node* parse_statement(token *tokens, int *position);
-node* parse_expression(token *tokens, int *position);
-node* parse_term(token *tokens, int *position);
-node* parse_factor(token *tokens, int *position);
-node* parse_identifier(token *tokens, int *position);
-node* parse_constant(token *tokens, int *position);
-node* parse_value(token *tokens, int *position);
-node* parse_assignment(token* tokens, int* position);
+static node* parse_statement(token *tokens, int *position);
+static node* parse_expression(token *tokens, int *position);
+static node* parse_term(token *tokens, int *position);
+static node* parse_factor(token *tokens, int *position);
+static node* parse_identifier(token *tokens, int *position);
+static node* parse_constant(token *tokens, int *position);
+static node* parse_value(token *tokens, int *position);
+static node* parse_assignment(token* tokens, int* position);
 
 /**
  * @brief Lexes and parses an input string according to G
@@ -227,7 +239,7 @@ node* parse_input(char* input) {
  * @param position 
  * @return node* 
  */
-node* parse_statement(token *tokens, int* position) {
+static node* parse_statement(token *tokens, int* position) {
     if(tokens[*position].type == TOKEN_IDENTIFIER 
         && tokens[*position + 1].type == TOKEN_EQUALS) {
         return parse_assignment(tokens, position);
@@ -247,7 +259,7 @@ node* parse_statement(token *tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_assignment(token* tokens, int* position) {
+static node* parse_assignment(token* tokens, int* position) {
     node* identifier = parse_identifier(tokens, position);
     (*position)++;  
     return create_node(
@@ -258,7 +270,7 @@ node* parse_assignment(token* tokens, int* position) {
     );
 }
 
-node* parse_expression(token* tokens, int* position) {
+static node* parse_expression(token* tokens, int* position) {
     node* term = parse_term(tokens, position);
     while(tokens[*position].type == TOKEN_PLUS 
        || tokens[*position].type == TOKEN_MINUS) {
@@ -277,7 +289,7 @@ node* parse_expression(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_term(token* tokens, int* position) {
+static node* parse_term(token* tokens, int* position) {
     node* factor = parse_factor(tokens, position);
 
     while(
@@ -302,7 +314,7 @@ node* parse_term(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_factor(token* tokens, int* position) {
+static node* parse_factor(token* tokens, int* position) {
     if(tokens[*position].type == TOKEN_LPAREN) {
         (*position)++;  // consume ()
         node* expression = parse_expression(tokens, position);
@@ -326,7 +338,7 @@ node* parse_factor(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_constant(token* tokens, int* position) {
+static node* parse_constant(token* tokens, int* position) {
     char* value = tokens[(*position)].name;
     (*position )++;
     return create_node(NODE_CONSTANT, value, NULL, NULL);
@@ -341,7 +353,7 @@ node* parse_constant(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_value(token* tokens, int* position) {
+static node* parse_value(token* tokens, int* position) {
     if(tokens[*position].type == TOKEN_CONST) {
         node* i = parse_constant(tokens, position);
         if(tokens[*position].type == TOKEN_COMMA) {
@@ -397,7 +409,7 @@ node* parse_value(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_identifier(token* tokens, int* position) {
+static node* parse_identifier(token* tokens, int* position) {
     char* name = tokens[(*position)].name;
     (*position)++;
     return create_node(NODE_IDENTIFIER, name, NULL, NULL);
@@ -425,7 +437,7 @@ void free_ast(node* n) {
  * @param node 
  * @param depth 
  */
-void print_ast_recursive(node* node, int depth) {
+static void print_ast_recursive(node* node, int depth) {
     if (node == NULL) {
         return;
     }
@@ -459,7 +471,7 @@ void print_ast(node* root) {
  * @param v 
  * @return value 
  */
-value make_value_from_vector(vector v) {
+static value make_value_from_vector(vector v) {
     value r;
     r.type = VAL_VECTOR;
     r.vec = v;
@@ -472,7 +484,7 @@ value make_value_from_vector(vector v) {
  * @param f 
  * @return value 
  */
-value make_value_from_scalar(float f) {
+static value make_value_from_scalar(float f) {
     value r;
     r.type = VAL_SCALAR;
     r.scalar = f;
@@ -484,7 +496,7 @@ value make_value_from_scalar(float f) {
  * 
  * @return value 
  */
-value sentinel() {
+static value sentinel() {
     value r ;
     r.type = VAL_SENTINEL;
     return r;
@@ -496,7 +508,7 @@ value sentinel() {
  * @param s 
  * @return int 
  */
-int is_sentinel(value s) {
+static int is_sentinel(value s) {
     return s.type == VAL_SENTINEL;
 }
 
@@ -527,7 +539,7 @@ char* value_to_string(value v) {
  * @param n 
  * @return value 
  */
-value handle_asssignemnt(node* n) {
+static value handle_asssignemnt(node* n) {
     if(n->left == NULL || n->left->type != NODE_IDENTIFIER || n->right == NULL) {
         return sentinel();
     }
@@ -541,35 +553,18 @@ value handle_asssignemnt(node* n) {
             printf("Warning: Cannot assign scalar to variable\n");
             printf("Assigning scalar as field i\n");
             vector v = {result.scalar, 0, 0};
-            insert_vector(v, n->left->value);
-            value r;
-            r.type = VAL_VECTOR;
-            r.vec = v;
-            return r;
+            if(insert_vector(v, n->left->value) != -1) {
+                value r;
+                r.type = VAL_VECTOR;
+                r.vec = v;
+                return r;
+            } else {
+                return sentinel();
+            };
         }
     } else {
         return sentinel();
     }
-
-}
-
-/**
- * @brief Prints the help text
- * 
- */
-void print_help() {
-    printf("tritone: very bad vector calculator\n" 
-           "- store a vector: a = 1, 2, 3\n"
-           "- scalar operations: 1+2, 6-9, 5*3, 9/1,\n"
-           "- vector operations: a + b, a + (1, 2, 3 * c)\n" 
-           "\t-supports addition, subtraction, scalar multiplication," 
-           " scalar division, cross product, dot product.\n"
-           " help: print this message\n"
-           " clear: clear the screen\n"
-           " free: free all variables\n"
-           " list: list all variables\n"
-           " this is a change for git to pick up\n"
-           );
 }
 
 /**
@@ -579,7 +574,7 @@ void print_help() {
  * @param n 
  * @return value 
  */
-value handle_identifier(node* n) {
+static value handle_identifier(node* n) {
     if(!strcmp(n->value, "quit")) {
         exit(0);
     } else if(!strcmp(n->value, "free")) {
@@ -614,7 +609,7 @@ value handle_identifier(node* n) {
  * @param n 
  * @return value 
  */
-value handle_operation(node*n) {
+static value handle_operation(node*n) {
     value left = evaluate_ast(n->left);
     value right = evaluate_ast(n->right);
 
@@ -715,7 +710,7 @@ value handle_operation(node*n) {
  * @param n 
  * @return value 
  */
-value handle_vector(node* n) {
+static value handle_vector(node* n) {
     float i = atof(n->left->value);
     float j = atof(n->right->left->value);
     float k = atof(n->right->right->value);

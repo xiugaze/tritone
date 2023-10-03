@@ -1,7 +1,7 @@
 CC=gcc                      # c compiler
 CFLAGS=-c -Wall              # compiler flags
 LDFLAGS=                    # linker arguments
-SOURCES=main.c vec.c vecvec.c ast.c  # source files
+SOURCES=main.c tritone.c vec.c vecvec.c ast.c  # source files
 OBJECTS=$(patsubst %.c,build/%.o,$(SOURCES))
 DEPS=$(patsubst %.o,%.d,$(OBJECTS))
 EXECUTABLE=build/tritone

@@ -1,3 +1,17 @@
+/**
+ * @file ast.c
+ * @author Caleb Andreano (andreanoc@msoe.edu)
+ * @class CPE2600-121
+ * @brief Helper routines for parsing an input string, constructing
+ * an abstract syntax tree according to context free grammar G,
+ * and evaluating the tree to a final result. Assignments are expressions,
+ * not statements, and evaluate to the left hand side.
+ * 
+ * Course: CPE2600-121
+ * Assignment: Lab Wk 5
+ * @date 2023-10-01
+ */
+
 #ifndef AST_H
 #define AST_H
     #include "vec.h"
