@@ -1,5 +1,5 @@
 CC=gcc                      # c compiler
-CFLAGS=-c -Wall              # compiler flags
+CFLAGS=-c -Wall -ggdb            # compiler flags
 LDFLAGS=                    # linker arguments
 SOURCES=main.c tritone.c vec.c vecvec.c ast.c  # source files
 OBJECTS=$(patsubst %.c,build/%.o,$(SOURCES))

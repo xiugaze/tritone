@@ -14,5 +14,6 @@
 
     char* tritone(void);
     void print_help();
+    void tritone_exit(void);
 
 #endif

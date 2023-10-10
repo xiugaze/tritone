@@ -51,6 +51,10 @@ char* tritone(void) {
     return output_buffer;
 }
 
+void tritone_exit(void) {
+    printf("goodbye!\n");
+}
+
 
 /**
  * @brief Prints the help text

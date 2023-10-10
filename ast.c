@@ -186,6 +186,7 @@ token* lex(char* input) {
             break;
         }
     }
+    // printf("Number of tokens: %d\n", size);
     return tokens;
 }
 
@@ -201,8 +202,10 @@ token* lex(char* input) {
  */
 node* create_node(node_type type, char* value, node* left, node* right) {
     node* n = (node*) malloc(sizeof(node));
+    // length + null pointer
+    n->value = malloc(strlen(value) + 1);
+    strcpy(n->value, value);
     n->type = type;
-    n->value = value;
     n->left = left;
     n->right = right;
     n->is_root = 0;
@@ -219,6 +222,24 @@ static node* parse_constant(token *tokens, int *position);
 static node* parse_value(token *tokens, int *position);
 static node* parse_assignment(token* tokens, int* position);
 
+
+/**
+ * @brief Frees a list of tokens
+ * 
+ * @param tokens 
+ */
+void free_tokens(token* tokens) {
+    int cur = 0;
+    while(tokens[cur].type != TOKEN_END) {
+        if(tokens[cur].type == TOKEN_IDENTIFIER 
+            || tokens[cur].type == TOKEN_CONST) {
+            free(tokens[cur].name);
+        }
+        cur++;
+    }
+    free(tokens);
+}
+
 /**
  * @brief Lexes and parses an input string according to G
  * 
@@ -228,7 +249,9 @@ static node* parse_assignment(token* tokens, int* position);
 node* parse_input(char* input) {
     token* tokens = lex(input);
     int position = 0;
-    return parse_statement(tokens, &position);
+    node* result = parse_statement(tokens, &position);
+    free_tokens(tokens);
+    return result;
 }
 
 /**
@@ -425,6 +448,10 @@ void free_ast(node* n) {
     if (n == NULL) {
         return;
     }
+
+    // if(n->value != NULL) {
+    //     free(n->value);
+    // }
 
     free_ast(n->left);
     free_ast(n->right);

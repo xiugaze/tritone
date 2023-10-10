@@ -18,10 +18,13 @@
 
 
 int main(int arc, char** argv) {
+
     if(argv[1] && !strcmp("-h", argv[1])) {
         print_help();
         exit(0);
     }
+
+    atexit(tritone_exit);
 
     do {
         printf("%s", tritone());
