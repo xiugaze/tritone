@@ -1,3 +1,14 @@
+/**
+ * @file tritone.c
+ * @author Caleb Andreano (andreanoc@msoe.edu)
+ * @class CPE2600-121
+ * @brief Tritone: a bad vector calculator
+ * 
+ * Course: CPE2600-121
+ * Assignment: Lab Wk 5
+ * @date 2023-10-01
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include "tritone.h"
@@ -5,6 +16,11 @@
 #include "vec.h"
 #include "vecvec.h"
 
+/**
+ * @brief Runs the tritone application and returns it's output string
+ * 
+ * @return char* 
+ */
 char* tritone(void) {
 
     static int started = 0;
@@ -38,7 +54,6 @@ char* tritone(void) {
 
 /**
  * @brief Prints the help text
- * 
  */
 void print_help() {
     printf("tritone: very bad vector calculator\n" 
