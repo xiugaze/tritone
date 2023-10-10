@@ -455,9 +455,9 @@ void free_ast(node* n) {
         return;
     }
 
-    // if(n->value != NULL) {
-    //     free(n->value);
-    // }
+    if(n->value != NULL) {
+        free(n->value);
+    }
 
     free_ast(n->left);
     free_ast(n->right);

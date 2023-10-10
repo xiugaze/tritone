@@ -16,6 +16,8 @@
 #include "vec.h"
 #include "vecvec.h"
 
+
+static node* root = NULL;
 /**
  * @brief Runs the tritone application and returns it's output string
  * 
@@ -44,7 +46,7 @@ char* tritone(void) {
     printf("> ");
 
     fgets(input_buffer, 300, stdin);
-    node* root = parse_input(input_buffer);
+    root = parse_input(input_buffer);
     strncpy(output_buffer, value_to_string(evaluate_ast(root)), 300);
 
     free_ast(root);
@@ -52,6 +54,7 @@ char* tritone(void) {
 }
 
 void tritone_exit(void) {
+    free_ast(root);
     printf("goodbye!\n");
 }
 
