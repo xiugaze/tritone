@@ -203,8 +203,14 @@ token* lex(char* input) {
 node* create_node(node_type type, char* value, node* left, node* right) {
     node* n = (node*) malloc(sizeof(node));
     // length + null pointer
-    n->value = malloc(strlen(value) + 1);
-    strcpy(n->value, value);
+
+    if(value != NULL) {
+        n->value = malloc(strlen(value) + 1);
+        strcpy(n->value, value);
+    } else {
+        n->value = value;
+    }
+
     n->type = type;
     n->left = left;
     n->right = right;
