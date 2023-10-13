@@ -20,6 +20,19 @@
 static vec_cell vectors[MAX_VECS];
 static int INITIALIZED = 0;
 
+static vec_vec cells;
+
+void init(void) {
+    cells->vecs = malloc(sizeof(vec_cell)*STARTING_VECS);
+    cells->size = STARTING_VECS;
+    cells->capacity = 0;
+}
+
+void clear(void) {
+    for(int i = 0; i < cells->capacity; i++) 
+
+}
+
 /**
  * @brief Marks each vector in the vector struct 
  * as open. 

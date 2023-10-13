@@ -2,6 +2,8 @@
 #define VECVEC_H
 
     #define MAX_VECS 10
+    // TODO: Change this
+    #define STARTING_VECS 4
     #include "vec.h"
 
     typedef enum {
@@ -14,6 +16,12 @@
         char name[12];
         vector vec;
     } vec_cell;
+
+    typedef struct {
+        vec_cell* vecs;
+        int size;
+        int capacity;
+    } vec_vec;
 
     int clear_vectors();
     int insert_vector(vector vec, char name[]);
