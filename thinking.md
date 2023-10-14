@@ -16,3 +16,6 @@ free(tok->name);
 
 ```
 - fixed this by changing `create_node` to use `strcpy()`;
+
+
+- vectable::get() will infinite loop if the key doesn't exist.
