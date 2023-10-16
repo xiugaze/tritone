@@ -270,15 +270,31 @@ node* parse_input(char* input) {
  * @return node* 
  */
 static node* parse_statement(token *tokens, int* position) {
-    if(tokens[*position].type == TOKEN_IDENTIFIER 
-        && tokens[*position + 1].type == TOKEN_EQUALS) {
-        return parse_assignment(tokens, position);
+    // if(tokens[*position].type == TOKEN_IDENTIFIER 
+    //     && tokens[*position + 1].type == TOKEN_EQUALS) {
+    //     return parse_assignment(tokens, position);
+    if(tokens[*position].type == TOKEN_IDENTIFIER) {
+        return parse_first_identifier(tokens, position);
     } else if(tokens[*position].type == TOKEN_EQUALS) {
         printf("Error: assignment with no identifier\n");
         return NULL;
     } else {
         return parse_expression(tokens, position);
     }
+}
+
+static node* parse_first_identifier(token* tokens, int* position) {
+    if(tokens[*position + 1].type == TOKEN_IDENTIFIER) {
+        return parse_command(tokens, position);
+    } else if(tokens[*position + 1].type == TOKEN_EQUALS) {
+        return parse_assignment(tokens, position) 
+    } else {
+        return NULL;
+    }
+}
+
+static node* parse_command() {
+
 }
 
 /**

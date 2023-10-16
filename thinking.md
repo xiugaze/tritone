@@ -14,8 +14,7 @@ free(tok->name);
 // n->name is now invalid/freed
 
 
+
 ```
-- fixed this by changing `create_node` to use `strcpy()`;
 
-
-- vectable::get() will infinite loop if the key doesn't exist.
+- change statement() -> assignment() to statement() -> identifier() ->  command() | assignment()
