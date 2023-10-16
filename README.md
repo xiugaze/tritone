@@ -2,6 +2,13 @@
 
 matlab-style vector expression evaluator. Uses a formal context-free grammar to build an abstract syntax tree, and uses recursive-descent parsing to evaluate the tree. 
 
+## building
+
+```
+> make
+> ./build/tritone
+
+```
 ## usage
 - scalar operations: 
     - addition: `1+2`
