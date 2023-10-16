@@ -31,7 +31,8 @@
 
 #include "ast.h"
 #include "vec.h"
-#include "vecvec.h"
+// #include "vecvec.h"
+#include "vectable.h"
 #include "tritone.h"
 
 /**
@@ -580,20 +581,23 @@ static value handle_asssignemnt(node* n) {
     value result = evaluate_ast(n->right);
     if(!is_sentinel(result)) {
         if(result.type == VAL_VECTOR) {
-            insert_vector(result.vec, n->left->value);
+            // CHANGE
+            insert_vector(n->left->value, result.vec);
             return result;
         } else {
             printf("Warning: Cannot assign scalar to variable\n");
             printf("Assigning scalar as field i\n");
             vector v = {result.scalar, 0, 0};
-            if(insert_vector(v, n->left->value) != -1) {
-                value r;
-                r.type = VAL_VECTOR;
-                r.vec = v;
-                return r;
-            } else {
-                return sentinel();
-            };
+            insert_vector(n->left->value, v);
+            // CHANGE
+            // if(insert_vector(v, n->left->value) != -1) {
+            //     value r;
+            //     r.type = VAL_VECTOR;
+            //     r.vec = v;
+            //     return r;
+            // } else {
+            //     return sentinel();
+            // };
         }
     } else {
         return sentinel();
@@ -611,11 +615,12 @@ static value handle_identifier(node* n) {
     if(!strcmp(n->value, "quit")) {
         exit(0);
     } else if(!strcmp(n->value, "free")) {
-        int cleared = clear_vectors();
+        int cleared = free_vectable();
         printf("Freed %d vectors\n", cleared);
         return sentinel();
     } else if(!strcmp(n->value, "list")) {
-        list_vectors();
+        // CHANGE
+        print_vectable();
         return sentinel();
     } else if(!strcmp(n->value, "help")) {
         print_help();
@@ -626,9 +631,14 @@ static value handle_identifier(node* n) {
 
         return sentinel();
     } else {
-        vec_cell* v = get_vector(n->value);
-        if(v != NULL) {
-            return make_value_from_vector(v->vec);
+        // CHANGE
+        vt_option v = get_vector(n->value);
+        if(is_some(v)) {
+            return make_value_from_vector(v.value.value);
+
+        // vec_cell* v = get_vector(n->value);
+        // if(v != NULL) {
+        //     return make_value_from_vector(v->vec);
         } else {
             printf("Error: no vector found named %s\n", n->value);
             return sentinel();

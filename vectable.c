@@ -14,7 +14,7 @@ int hash(char *key, int capacity) {
     unsigned long hash = 5381;
     int c;
 
-    while (c = *key++)
+    while ( (c = *key++) != 0)
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
     return hash % capacity;
@@ -29,77 +29,93 @@ vectable* new_vectable(void) {
     return v;
 }
 
-void free_entries(vt_entry* e, int capacity) {
+static vectable* table;
+static int INITIALIZED = 0;
+void vectable_init(void) {
+    table = new_vectable();
+}
+
+int free_entries(vt_entry* e, int capacity) {
+    int freed = 0;
     for(int i = 0; i < capacity; i++) {
-        free(e[i].key);
+        if(e[i].key != NULL) {
+            free(e[i].key);
+            freed++;
+        }
     }
     free(e);
+    return freed;
 }
 
-void free_vectable(vectable* v) {
-    free_entries(v->entries, v->capacity);
-    free(v);
+int free_vectable() {
+    int freed = free_entries(table->entries, table->capacity);
+    free(table);
+    return freed;
 }
 
 
-void resize_vectable(vectable* v, int new_size) {
+void resize_vectable(int new_size) {
     vt_entry* new_entries = (vt_entry*)calloc(new_size, sizeof(vt_entry));
-    for(int i = 0; i < v->capacity; i++) {
+    for(int i = 0; i < table->capacity; i++) {
         // for each existing entry in the old table
-        if(v->entries[i].key != NULL) {
-            int index = hash(v->entries[i].key, new_size);
+        if(table->entries[i].key != NULL) {
+            int index = hash(table->entries[i].key, new_size);
             while(new_entries[index].key != NULL) {
                 index++;
             }
 
-            new_entries[index].key = malloc(strlen(v->entries[i].key) + 1);
-            strcpy(new_entries[index].key, v->entries[i].key);
-            new_entries[index].value = v->entries[i].value; 
+            new_entries[index].key = malloc(strlen(table->entries[i].key) + 1);
+            strcpy(new_entries[index].key, table->entries[i].key);
+            new_entries[index].value = table->entries[i].value; 
         }
     }
-    free_entries(v->entries, v->capacity);
-    v->capacity = new_size;
-    v->entries = new_entries;
+    free_entries(table->entries, table->capacity);
+    table->capacity = new_size;
+    table->entries = new_entries;
 }
 
 
-static float load_factor(vectable* c) {
-    return (float)c->size/(float)c->capacity;
+static float load_factor() {
+    return (float)table->size/(float)table->capacity;
 }
 
-void insert(vectable* v, char* key, vector value) {
+void insert_vector(char* key, vector value) {
     // check for load factor
-    if(load_factor(v) >= 0.7) {
-        printf("resizing to %d at key %s\n", v->capacity*2, key);
-        resize_vectable(v, v->capacity*2);
+    if(!INITIALIZED) {
+        vectable_init();
+        INITIALIZED = 1;
+    }
+    if(load_factor(table) >= 0.7) {
+        printf("resizing to %d at key %s\n", table->capacity*2, key);
+        resize_vectable(table->capacity*2);
     }
 
     // linear probe
-    int index = hash(key, v->capacity);
-    while(v->entries[index].key != NULL) {
+    int index = hash(key, table->capacity);
+    while(table->entries[index].key != NULL) {
 
         // if the key already exists
-        if(!strcmp(v->entries[index].key, key)) {
-            v->entries[index].value = value;
+        if(!strcmp(table->entries[index].key, key)) {
+            table->entries[index].value = value;
             return;
         }
 
         // if the probe reaches the end;
-        if(index == v->capacity - 1) {
+        if(index == table->capacity - 1) {
             index = 0;
         } else {
             index++;
         }
     }
 
-    v->size++;
-    v->entries[index].key = malloc(strlen(key) + 1);
-    strcpy(v->entries[index].key, key);
-    v->entries[index].value = value;
+    table->size++;
+    table->entries[index].key = malloc(strlen(key) + 1);
+    strcpy(table->entries[index].key, key);
+    table->entries[index].value = value;
     
 }
 
-vt_option some(vector v) {
+vt_option some(vt_entry v) {
     vt_option s;
     s.state = SOME;
     s.value = v;
@@ -118,18 +134,21 @@ int is_some(vt_option o) {
     return o.state == SOME;
 }
 
-vt_option get(vectable* v, char* key) {
-    int index = hash(key, v->capacity);
+/* 
+    TODO: get_vector returns the actual address of the entry, &vectors[i].
+*/
+vt_option get_vector(char* key) {
+    int index = hash(key, table->capacity);
 
     // probe: existing keys are all in order
-    while(v->entries[index].key != NULL) {
+    while(table->entries[index].key != NULL) {
 
-        if(!strcmp(v->entries[index].key, key)) {
-            return some(v->entries[index].value);
+        if(!strcmp(table->entries[index].key, key)) {
+            return some(table->entries[index]);
         }
 
         // if we reach the end and haven't found it
-        if(index == v->capacity - 1) {
+        if(index == table->capacity - 1) {
             index = 0;
         } else {
             index++;
@@ -138,10 +157,10 @@ vt_option get(vectable* v, char* key) {
     return none();
 }
 
-void print_vectable(vectable* v) {
-    for(int i = 0; i < v->capacity; i++) {
-        if(v->entries[i].key != NULL) {
-            printf("%s at index %d: %s\n", v->entries[i].key, i, vector_to_string(v->entries[i].value));
+void print_vectable() {
+    for(int i = 0; i < table->capacity; i++) {
+        if(table->entries[i].key != NULL) {
+            printf("%s at index %d: %s\n", table->entries[i].key, i, vector_to_string(table->entries[i].value));
         }
     }
 }

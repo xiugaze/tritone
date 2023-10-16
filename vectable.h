@@ -21,16 +21,16 @@
     } vt_result_state;
 
     typedef struct {
-        vector value;
+        vt_entry value;
         vt_result_state state;
     } vt_option;
 
     vectable* new_vectable(void);
-    void free_vectable(vectable* v);
-    void resize_vectable(vectable* v, int new_size);
-    void insert(vectable* v, char* key, vector value);
-    void print_vectable(vectable* v);
+    int free_vectable();
+    void resize_vectable(int new_size);
+    void insert_vector(char* key, vector value);
+    void print_vectable();
     int is_some(vt_option o);
-    vt_option get(vectable* v, char* key);
+    vt_option get_vector(char* key);
 
 #endif
