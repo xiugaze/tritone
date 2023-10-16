@@ -272,6 +272,12 @@ node* parse_input(char* input) {
     return result;
 }
 
+/**
+ * @brief Returns true if cmd is a command
+ * 
+ * @param cmd 
+ * @return int 
+ */
 static int is_command(char* cmd) {
     return !strcmp(cmd, "clear")
         || !strcmp(cmd, "quit")
@@ -305,6 +311,13 @@ static node* parse_statement(token *tokens, int* position) {
 }
 
 
+/**
+ * @brief Tries to parse a quote-delimited string
+ * 
+ * @param tokens 
+ * @param position 
+ * @return node* 
+ */
 static node* parse_string(token* tokens, int* position) {
     if(tokens[*position].type == TOKEN_QUOTE) {
         // consume the quote
@@ -330,9 +343,15 @@ static node* parse_string(token* tokens, int* position) {
     } else {
         return NULL;
     }
-
 }
 
+/**
+ * @brief Attempts to parse a command identifier
+ * 
+ * @param tokens 
+ * @param position 
+ * @return node* 
+ */
 static node* parse_command(token* tokens, int* position) {
     node* command = parse_identifier(tokens, position);
 
@@ -680,6 +699,12 @@ static value handle_identifier(node* n) {
         }
 }
 
+/**
+ * @brief 
+ * Handles the NODE_EXECUTE case
+ * @param n 
+ * @return value 
+ */
 static value handle_execute(node* n) {
     node* left = n->left;
     node* right = n->right;

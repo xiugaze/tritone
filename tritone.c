@@ -54,6 +54,10 @@ char* tritone(void) {
     return output_buffer;
 }
 
+/**
+ * @brief "Exits gracefully", freeing any existing data structures
+ * 
+ */
 void tritone_exit(void) {
     free_ast(root);
     free_vectable();

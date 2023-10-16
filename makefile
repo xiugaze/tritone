@@ -1,3 +1,8 @@
+# Tritone: A bad Vector Calculator
+# Name: Caleb Andreano (andreanoc@msoe.edu)
+# Date: 10-17-2023
+# Lab 7
+
 CC=gcc                      # c compiler
 CFLAGS=-c -Wall -ggdb            # compiler flags
 LDFLAGS=                    # linker arguments

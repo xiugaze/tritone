@@ -18,6 +18,13 @@
 #include "vectable.h"
 
 
+/**
+ * @brief Entry point
+ * 
+ * @param arc 
+ * @param argv 
+ * @return int 
+ */
 int main(int arc, char** argv) {
 
     if(argv[1] && !strcmp("-h", argv[1])) {

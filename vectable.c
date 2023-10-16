@@ -1,8 +1,23 @@
+/**
+ * @file vectable.c
+ * @author Caleb Andreano (andreanoc@msoe.edu)
+ * @class CPE2600-121
+ * @brief Vector Hashtable
+ * Supports insertion in O(1) average time and retrieval at O(1) average time.
+ * Uses dbj2 hashing for indexing and handles collision using linear probing 
+ * 
+ * Course: CPE2600-121
+ * Assignment: Lab Wk 7
+ * @date 2023-10-17
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include "vectable.h"
 
+static vectable* table;
+static int INITIALIZED = 0;
 
 /**
  * @brief implementation of djb2 string hashing
@@ -20,6 +35,11 @@ int hash(char *key, int capacity) {
     return hash % capacity;
 }
 
+/**
+ * @brief Allocates space for the vectable with an initial capacity
+ * 
+ * @return vectable* 
+ */
 vectable* new_vectable(void) {
     vectable* v = (vectable*)malloc(sizeof(vectable));
     v->entries = (vt_entry*)calloc(INITIAL_CAPACITY, sizeof(vt_entry));
@@ -29,14 +49,23 @@ vectable* new_vectable(void) {
     return v;
 }
 
-static vectable* table;
-static int INITIALIZED = 0;
+/**
+ * @brief Sets the file vectable variable to an empty vectable
+ * 
+ */
 void vectable_init(void) {
     table = new_vectable();
     INITIALIZED = 1;
 }
 
-int free_entries(vt_entry* e, int capacity) {
+/**
+ * @brief Frees a list of vt_entry 
+ * 
+ * @param e Pointer to first entry
+ * @param capacity How many entries to free
+ * @return int 
+ */
+static int free_entries(vt_entry* e, int capacity) {
     int freed = 0;
     for(int i = 0; i < capacity; i++) {
         if(e[i].key != NULL) {
@@ -48,12 +77,22 @@ int free_entries(vt_entry* e, int capacity) {
     return freed;
 }
 
+/**
+ * @brief Frees a vectable, includes its entry
+ * 
+ * @return int 
+ */
 int free_vectable() {
     int freed = free_entries(table->entries, table->capacity);
     free(table);
     return freed;
 }
 
+/**
+ * @brief Empties the file vectable
+ * 
+ * @return int 
+ */
 int clear_vectable() {
     int freed = free_vectable();
     table = new_vectable();
@@ -61,7 +100,11 @@ int clear_vectable() {
 }
 
 
-
+/**
+ * @brief Resizes the vectable to a capacity of new_size
+ * 
+ * @param new_size 
+ */
 void resize_vectable(int new_size) {
     vt_entry* new_entries = (vt_entry*)calloc(new_size, sizeof(vt_entry));
     for(int i = 0; i < table->capacity; i++) {
@@ -83,10 +126,19 @@ void resize_vectable(int new_size) {
 }
 
 
+/***
+ * Returns the current load factor of the vectable
+*/
 static float load_factor() {
     return (float)table->size/(float)table->capacity;
 }
 
+/**
+ * @brief Inserts a vector
+ * 
+ * @param key Name of variable
+ * @param value Vector to store
+ */
 void insert_vector(char* key, vector value) {
     // check for load factor
     if(!INITIALIZED) {
@@ -108,7 +160,7 @@ void insert_vector(char* key, vector value) {
             return;
         }
 
-        // if the probe reaches the end;
+        // if the probe reaches the end, loop back around
         if(index == table->capacity - 1) {
             index = 0;
         } else {
@@ -123,6 +175,12 @@ void insert_vector(char* key, vector value) {
     
 }
 
+/**
+ * @brief Returns the some invariant containing the vector
+ * 
+ * @param v 
+ * @return vt_option 
+ */
 vt_option some(vt_entry v) {
     vt_option s;
     s.state = SOME;
@@ -131,6 +189,11 @@ vt_option some(vt_entry v) {
     return s;
 };
 
+/**
+ * @brief returns the none invariant
+ * 
+ * @return vt_option 
+ */
 vt_option none() {
     vt_option n;
     n.state = NONE;
@@ -138,13 +201,23 @@ vt_option none() {
     return n;
 };
 
+/**
+ * @brief Returns true if o is some
+ * 
+ * @param o 
+ * @return int 
+ */
 int is_some(vt_option o) {
     return o.state == SOME;
 }
 
-/* 
-    TODO: get_vector returns the actual address of the entry, &vectors[i].
-*/
+/**
+ * @brief Returns some(vec) if the vector with name key exists, 
+ * otherwise returns none
+ * 
+ * @param key 
+ * @return vt_option 
+ */
 vt_option get_vector(char* key) {
     int index = hash(key, table->capacity);
 
@@ -165,11 +238,18 @@ vt_option get_vector(char* key) {
     return none();
 }
 
+/**
+ * @brief Lists the variables in the vectable and summarizes its properties
+ * 
+ */
 void print_vectable() {
     int found = 0;
     for(int i = 0; i < table->capacity; i++) {
         if(table->entries[i].key != NULL) {
-            printf("%s: %s\n", table->entries[i].key, vector_to_string(table->entries[i].value));
+            printf(
+                "%s: %s\n", 
+                table->entries[i].key, 
+                vector_to_string(table->entries[i].value));
             found++;
         }
     }
@@ -177,27 +257,43 @@ void print_vectable() {
     if(found == 0) {
         printf("No vectors are currently stored\n");
     } else {
-        printf("Summary: %d stored vectors at a %0.4f load factor\n", table->size, load_factor());
+        printf(
+            "Summary: %d stored vectors at a %0.4f load factor\n", 
+            table->size, 
+            load_factor()
+            );
     }
 }
 
+/**
+ * @brief Writes the current vectable as a csv to path
+ * 
+ * @param path 
+ */
 void write_vectable(char* path) {
     FILE* fp = fopen(path, "w+");
     for(int i = 0; i < table->capacity; i++) {
         if(table->entries[i].key != NULL) {
             vt_entry* e = table->entries;
-            fprintf(fp, 
-                    "%s,%.2lf,%.2lf,%.2lf\n",
-                    e[i].key,
-                    e[i].value.i,
-                    e[i].value.j,
-                    e[i].value.k
+            fprintf(
+                fp, 
+                "%s,%.2lf,%.2lf,%.2lf\n",
+                e[i].key,
+                e[i].value.i,
+                e[i].value.j,
+                e[i].value.k
             );
         }
     }
     fclose(fp);
 }
 
+/**
+ * @brief Attempts to read a vectable from path
+ * 
+ * @param path 
+ * @return int 
+ */
 int read_vectable(char* path) {
     FILE* fp = fopen(path, "r+");
     if(!fp) { return -1; }
@@ -210,7 +306,11 @@ int read_vectable(char* path) {
     int scan_successes;
     int line = 1;
     int read = 0;
-    while((scan_successes = fscanf(fp, "%[^,],%f,%f,%f\n", name, &i, &j, &k)) != EOF) {
+    while((scan_successes = fscanf(
+        fp, 
+        "%[^,],%f,%f,%f\n", 
+        name, &i, &j, &k)
+        ) != EOF) {
         if(scan_successes != 4) {
             printf("Error: Bad line at line %d\n, ignoring", line);
         } else {
@@ -225,11 +325,15 @@ int read_vectable(char* path) {
 };
 
 /**
- * stolen from https://codereview.stackexchange.com/questions/29198/random-string-generator-in-c
+ * @brief Generates a random string of length size
+ * 
+ * stolen from 
+ * https://codereview.stackexchange.com/questions/29198/random-string-generator-in-c
 */
 static char *rand_string(char *str, size_t size)
 {
-    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJK...";
+    const char charset[] = "abcdefghijklmnopqrstuvwxyz"
+                           "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     if (size) {
         --size;
         for (size_t n = 0; n < size; n++) {
@@ -241,6 +345,13 @@ static char *rand_string(char *str, size_t size)
     return str;
 }
 
+/**
+ * @brief Inserts size random vectors into the table
+ *  Note: Failure seems to be machine dependent:
+ *  - Tested on Native Linux, Ryzen 5900X/32GB: breaks past ~700000 entries
+ *  - Tested on WSL Linux, School Laptops: breaks past ~1500 entries
+ * @param size 
+ */
 void fill_vectable(int size) {
     for (int i = 0; i < size; i++) {
         char* str = malloc(sizeof(char) * 13);
