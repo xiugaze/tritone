@@ -14,7 +14,7 @@
 #include "tritone.h"
 #include "ast.h"
 #include "vec.h"
-#include "vecvec.h"
+#include "vectable.h"
 
 
 static node* root = NULL;
@@ -55,6 +55,7 @@ char* tritone(void) {
 
 void tritone_exit(void) {
     free_ast(root);
+    free_vectable();
     printf("goodbye!\n");
 }
 

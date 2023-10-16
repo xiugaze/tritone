@@ -27,34 +27,11 @@ int main(int arc, char** argv) {
 
     atexit(tritone_exit);
 
+    vectable_init();
+
     do {
         printf("%s", tritone());
     } while(1);
 
     return -1;
-    // vectable* v = new_vectable();
-
-    // vector a = { 1, 2, 3 };
-    // char c1 = 'A';
-    // char c2 = 'z';
-    // char buf[3];
-
-    // for(int i = 0; i < 32; i++) {
-    //     sprintf(buf, "%c%c", c1, c2);
-    //     insert(v, buf, a);
-    //     c1++;
-    //     c2--;
-    //     a.i++;
-    //     a.j++;
-    //     a.k++;
-    // }
-
-    // // insert(v, "a", a);
-    // // insert(v, "nineteen", a);
-    // // resize_vectable(v, 32);
-    // print_vectable(v);
-    // printf("size: %d, capacity: %d\n", v->size, v->capacity);
-
-    // free_vectable(v);
-    return 0;
 }

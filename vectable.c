@@ -164,3 +164,43 @@ void print_vectable() {
         }
     }
 }
+
+void write_vectable() {
+    FILE* fp = fopen("./table/table", "w+");
+    for(int i = 0; i < table->capacity; i++) {
+        if(table->entries[i].key != NULL) {
+            vt_entry* e = table->entries;
+            fprintf(fp, 
+                    "%s,%.2lf,%.2lf,%.2lf\n",
+                    e[i].key,
+                    e[i].value.i,
+                    e[i].value.j,
+                    e[i].value.k
+            );
+        }
+    }
+    fclose(fp);
+}
+
+void read_vectable() {
+    FILE* fp = fopen("./table/table", "r+");
+    if(!fp) { return; }
+
+    char name[40];
+    float i;
+    float j;
+    float k;
+
+    int scan_successes;
+    int line = 1;
+    while((scan_successes = fscanf(fp, "%[^,],%f,%f,%f\n", name, &i, &j, &k)) != EOF) {
+        if(scan_successes != 4) {
+            printf("Error: Bad line at line %d\n, ignoring", line);
+        } else {
+            printf("name: %s\n", name);
+            vector v = {i, j, k};
+            insert_vector(name, v);
+        }
+        line++;
+    };
+};

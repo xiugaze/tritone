@@ -32,5 +32,8 @@
     void print_vectable();
     int is_some(vt_option o);
     vt_option get_vector(char* key);
+    void write_vectable();
+    void read_vectable();
+    void vectable_init();
 
 #endif
