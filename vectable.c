@@ -241,8 +241,8 @@ static char *rand_string(char *str, size_t size)
     return str;
 }
 
-void fill_vectable() {
-    for (int i = 0; i < 100000; i++) {
+void fill_vectable(int size) {
+    for (int i = 0; i < size; i++) {
         char* str = malloc(sizeof(char) * 13);
         str = rand_string(str, 12);
         vector v = { i, i, i };

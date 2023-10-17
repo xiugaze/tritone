@@ -335,7 +335,13 @@ static node* parse_string(token* tokens, int* position) {
 
 static node* parse_command(token* tokens, int* position) {
     node* command = parse_identifier(tokens, position);
-    node* argument = parse_string(tokens, position);
+
+    node* argument; 
+    if(tokens[*position].type == TOKEN_CONST) {
+        argument = parse_constant(tokens, position);
+    } else {
+        argument = parse_string(tokens, position);
+    }
     return create_node(
         NODE_EXECUTE,
         "execute",
@@ -705,7 +711,7 @@ static value handle_execute(node* n) {
             printf("Read %d vectors from %s\n", read, right->value);
         };
     } else if(!strcmp(left->value, "fill")) {
-        fill_vectable();
+        fill_vectable(atoi(right->value));
     }
     return sentinel();
 }
