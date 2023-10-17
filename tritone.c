@@ -47,7 +47,7 @@ char* tritone(void) {
 
     fgets(input_buffer, 300, stdin);
     root = parse_input(input_buffer);
-    print_ast(root);
+    // print_ast(root);
     strncpy(output_buffer, value_to_string(evaluate_ast(root)), 300);
 
     free_ast(root);

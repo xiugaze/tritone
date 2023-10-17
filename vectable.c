@@ -33,19 +33,33 @@ static vectable* table;
 static int INITIALIZED = 0;
 void vectable_init(void) {
     table = new_vectable();
+    INITIALIZED = 1;
 }
 
-void free_entries(vt_entry* e, int capacity) {
+int free_entries(vt_entry* e, int capacity) {
+    int freed = 0;
     for(int i = 0; i < capacity; i++) {
-        free(e[i].key);
+        if(e[i].key != NULL) {
+            free(e[i].key);
+            freed++;
+        }
     }
     free(e);
+    return freed;
 }
 
-void free_vectable() {
-    free_entries(table->entries, table->capacity);
+int free_vectable() {
+    int freed = free_entries(table->entries, table->capacity);
     free(table);
+    return freed;
 }
+
+int clear_vectable() {
+    int freed = free_vectable();
+    table = new_vectable();
+    return freed;
+}
+
 
 
 void resize_vectable(int new_size) {
@@ -152,10 +166,15 @@ vt_option get_vector(char* key) {
 }
 
 void print_vectable() {
+    int found = 0;
     for(int i = 0; i < table->capacity; i++) {
         if(table->entries[i].key != NULL) {
-            printf("%s at index %d: %s\n", table->entries[i].key, i, vector_to_string(table->entries[i].value));
+            printf("%s: %s\n", table->entries[i].key, vector_to_string(table->entries[i].value));
+            found++;
         }
+    }
+    if(found == 0) {
+        printf("No vectors are currently stored\n");
     }
 }
 
@@ -187,15 +206,17 @@ int read_vectable(char* path) {
 
     int scan_successes;
     int line = 1;
+    int read = 0;
     while((scan_successes = fscanf(fp, "%[^,],%f,%f,%f\n", name, &i, &j, &k)) != EOF) {
         if(scan_successes != 4) {
             printf("Error: Bad line at line %d\n, ignoring", line);
         } else {
-            printf("name: %s\n", name);
             vector v = {i, j, k};
             insert_vector(name, v);
+            read++;
         }
         line++;
     };
-    return 0;
+    fclose(fp);
+    return read;
 };

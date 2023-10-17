@@ -26,7 +26,8 @@
     } vt_option;
 
     vectable* new_vectable(void);
-    void free_vectable();
+    int free_vectable();
+    int clear_vectable();
     void resize_vectable(int new_size);
     void insert_vector(char* key, vector value);
     void print_vectable();

@@ -193,10 +193,10 @@ token* lex(char* input) {
         }
     }
 
-    for(int i = 0; i < size; i++) {
-        printf("%s: %d, ", tokens[i].name, tokens[i].type);
-    }
-    printf("\n");
+    // for(int i = 0; i < size; i++) {
+    //     printf("%s: %d, ", tokens[i].name, tokens[i].type);
+    // }
+    // printf("\n");
     // printf("Number of tokens: %d\n", size);
     return tokens;
 }
@@ -238,7 +238,6 @@ static node* parse_identifier(token *tokens, int *position);
 static node* parse_constant(token *tokens, int *position);
 static node* parse_value(token *tokens, int *position);
 static node* parse_assignment(token* tokens, int* position);
-static node* parse_first_identifier(token* tokens, int* position);
 static node* parse_command(token* tokens, int* position);
 
 
@@ -634,7 +633,7 @@ char* value_to_string(value v) {
  * @param n 
  * @return value 
  */
-static value handle_asssignemnt(node* n) {
+static value handle_assignment(node* n) {
     if(n->left == NULL || n->left->type != NODE_IDENTIFIER || n->right == NULL) {
         return sentinel();
     }
@@ -650,6 +649,7 @@ static value handle_asssignemnt(node* n) {
             printf("Assigning scalar as field i\n");
             vector v = {result.scalar, 0, 0};
             insert_vector(n->left->value, v);
+            return(make_value_from_vector(v));
         }
     } else {
         return sentinel();
@@ -679,7 +679,7 @@ static value handle_execute(node* n) {
     if(!strcmp(left->value, "quit")) {
         exit(0);
     } else if(!strcmp(left->value, "free")) {
-        int cleared = free_vectable();
+        int cleared = clear_vectable();
         printf("Freed %d vectors\n", cleared);
         return sentinel();
     } else if(!strcmp(left->value, "list")) {
@@ -697,8 +697,11 @@ static value handle_execute(node* n) {
         write_vectable(right->value);
     } else if(!strcmp(left->value, "read")) {
         // TODO: this is incorrect, the ast does not get built correctly for paths
-        if(read_vectable(right->value) != 0) {
+        int read = 0;
+        if((read = read_vectable(right->value)) < 0) {
             printf("Error: Bad argument to funtion 'read' (does the file exist?)\n");
+        } else {
+            printf("Read %d vectors from %s\n", read, right->value);
         };
     }
     return sentinel();
@@ -843,7 +846,7 @@ value evaluate_ast(node* n) {
             return handle_identifier(n);
             break;
         case(NODE_ASSIGNMENT):
-            return handle_asssignemnt(n);
+            return handle_assignment(n);
             break;
         case(NODE_VECTOR):
             return handle_vector(n);
