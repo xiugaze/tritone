@@ -18,6 +18,7 @@
 
     typedef enum {
         TOKEN_IDENTIFIER,
+        TOKEN_QUOTE,
         TOKEN_EQUALS,
         TOKEN_COMMA,
         TOKEN_PLUS,
@@ -46,6 +47,7 @@
         NODE_VECTOR,
         NODE_CONSTANT,
         NODE_EXECUTE,
+        NODE_STRING,
     } node_type;
 
     typedef struct node node;

@@ -35,22 +35,16 @@ void vectable_init(void) {
     table = new_vectable();
 }
 
-int free_entries(vt_entry* e, int capacity) {
-    int freed = 0;
+void free_entries(vt_entry* e, int capacity) {
     for(int i = 0; i < capacity; i++) {
-        if(e[i].key != NULL) {
-            free(e[i].key);
-            freed++;
-        }
+        free(e[i].key);
     }
     free(e);
-    return freed;
 }
 
-int free_vectable() {
-    int freed = free_entries(table->entries, table->capacity);
+void free_vectable() {
+    free_entries(table->entries, table->capacity);
     free(table);
-    return freed;
 }
 
 
@@ -165,8 +159,8 @@ void print_vectable() {
     }
 }
 
-void write_vectable() {
-    FILE* fp = fopen("./table/table", "w+");
+void write_vectable(char* path) {
+    FILE* fp = fopen(path, "w+");
     for(int i = 0; i < table->capacity; i++) {
         if(table->entries[i].key != NULL) {
             vt_entry* e = table->entries;
@@ -182,9 +176,9 @@ void write_vectable() {
     fclose(fp);
 }
 
-void read_vectable() {
-    FILE* fp = fopen("./table/table", "r+");
-    if(!fp) { return; }
+int read_vectable(char* path) {
+    FILE* fp = fopen(path, "r+");
+    if(!fp) { return -1; }
 
     char name[40];
     float i;
@@ -203,4 +197,5 @@ void read_vectable() {
         }
         line++;
     };
+    return 0;
 };

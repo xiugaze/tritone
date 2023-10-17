@@ -26,14 +26,14 @@
     } vt_option;
 
     vectable* new_vectable(void);
-    int free_vectable();
+    void free_vectable();
     void resize_vectable(int new_size);
     void insert_vector(char* key, vector value);
     void print_vectable();
     int is_some(vt_option o);
     vt_option get_vector(char* key);
     void write_vectable();
-    void read_vectable();
+    int read_vectable();
     void vectable_init();
 
 #endif

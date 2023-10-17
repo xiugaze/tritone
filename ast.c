@@ -75,11 +75,6 @@ token find_next_token(char* input, int* position) {
             tok.type = TOKEN_SLASH;
             (*position)++;
             break;
-        case '.':
-            tok.name = ".";
-            tok.type = TOKEN_DOT;
-            (*position)++;
-            break;
         case 'X':
             tok.name = "X";
             tok.type = TOKEN_CROSS;
@@ -118,6 +113,16 @@ token find_next_token(char* input, int* position) {
         case '}':
             tok.name = "}";
             tok.type = TOKEN_RBRACKET;
+            (*position)++;
+            break;
+        case '.':
+            tok.name = ".";
+            tok.type = TOKEN_DOT;
+            (*position)++;
+            break;
+        case '"':
+            tok.name = "\"";
+            tok.type = TOKEN_QUOTE;
             (*position)++;
             break;
         default: 
@@ -187,6 +192,11 @@ token* lex(char* input) {
             break;
         }
     }
+
+    for(int i = 0; i < size; i++) {
+        printf("%s: %d, ", tokens[i].name, tokens[i].type);
+    }
+    printf("\n");
     // printf("Number of tokens: %d\n", size);
     return tokens;
 }
@@ -263,6 +273,16 @@ node* parse_input(char* input) {
     return result;
 }
 
+static int is_command(char* cmd) {
+    return !strcmp(cmd, "clear")
+        || !strcmp(cmd, "quit")
+        || !strcmp(cmd, "free")
+        || !strcmp(cmd, "help")
+        || !strcmp(cmd, "list")
+        || !strcmp(cmd, "write")
+        || !strcmp(cmd, "read");
+}
+
 /**
  * @brief Parses a statement and returns its root node
  *  <statement> := <assignment> | <expression>
@@ -272,11 +292,10 @@ node* parse_input(char* input) {
  * @return node* 
  */
 static node* parse_statement(token *tokens, int* position) {
-    // if(tokens[*position].type == TOKEN_IDENTIFIER 
-    //     && tokens[*position + 1].type == TOKEN_EQUALS) {
-    //     return parse_assignment(tokens, position);
-    if(tokens[*position].type == TOKEN_IDENTIFIER) {
-        return parse_first_identifier(tokens, position);
+    if(is_command(tokens[*position].name)) {
+        return parse_command(tokens, position);
+    } else if(tokens[*position + 1].type == TOKEN_EQUALS) {
+        return parse_assignment(tokens, position); 
     } else if(tokens[*position].type == TOKEN_EQUALS) {
         printf("Error: assignment with no identifier\n");
         return NULL;
@@ -285,19 +304,38 @@ static node* parse_statement(token *tokens, int* position) {
     }
 }
 
-static node* parse_first_identifier(token* tokens, int* position) {
-    if(tokens[*position + 1].type == TOKEN_IDENTIFIER) {
-        return parse_command(tokens, position);
-    } else if(tokens[*position + 1].type == TOKEN_EQUALS) {
-        return parse_assignment(tokens, position); 
+
+static node* parse_string(token* tokens, int* position) {
+    if(tokens[*position].type == TOKEN_QUOTE) {
+        // consume the quote
+        (*position)++;
+        char *string = calloc(200, sizeof(char));
+        string[0] = '\0';
+        while(tokens[*position].type != TOKEN_QUOTE) {
+            strcat(string, tokens[*position].name);
+            (*position)++;
+        }
+        // consume the quote
+        (*position)++;
+
+        node* n = create_node(
+            NODE_STRING,
+            string,
+            NULL,
+            NULL
+        );
+        // create_node performs a strcpy
+        free(string);
+        return n;
     } else {
         return NULL;
     }
+
 }
 
 static node* parse_command(token* tokens, int* position) {
     node* command = parse_identifier(tokens, position);
-    node* argument = parse_identifier(tokens, position);
+    node* argument = parse_string(tokens, position);
     return create_node(
         NODE_EXECUTE,
         "execute",
@@ -452,8 +490,6 @@ static node* parse_value(token* tokens, int* position) {
         return NULL;
     }
 }
-
-
 
 
 /**
@@ -614,15 +650,6 @@ static value handle_asssignemnt(node* n) {
             printf("Assigning scalar as field i\n");
             vector v = {result.scalar, 0, 0};
             insert_vector(n->left->value, v);
-            // CHANGE
-            // if(insert_vector(v, n->left->value) != -1) {
-            //     value r;
-            //     r.type = VAL_VECTOR;
-            //     r.vec = v;
-            //     return r;
-            // } else {
-            //     return sentinel();
-            // };
         }
     } else {
         return sentinel();
@@ -637,38 +664,44 @@ static value handle_asssignemnt(node* n) {
  * @return value 
  */
 static value handle_identifier(node* n) {
-    if(!strcmp(n->value, "quit")) {
-        exit(0);
-    } else if(!strcmp(n->value, "free")) {
-        int cleared = free_vectable();
-        printf("Freed %d vectors\n", cleared);
-        return sentinel();
-    } else if(!strcmp(n->value, "list")) {
-        // CHANGE
-        print_vectable();
-        return sentinel();
-    } else if(!strcmp(n->value, "help")) {
-        print_help();
-        return sentinel();
-    } else if(!strcmp(n->value, "clear")) {
-        printf("\033[2J"); // clear screen
-        printf("\033[H"); // go home
-
-        return sentinel();
-    } else {
-        // CHANGE
         vt_option v = get_vector(n->value);
         if(is_some(v)) {
             return make_value_from_vector(v.value.value);
-
-        // vec_cell* v = get_vector(n->value);
-        // if(v != NULL) {
-        //     return make_value_from_vector(v->vec);
         } else {
             printf("Error: no vector found named %s\n", n->value);
             return sentinel();
         }
+}
+
+static value handle_execute(node* n) {
+    node* left = n->left;
+    node* right = n->right;
+    if(!strcmp(left->value, "quit")) {
+        exit(0);
+    } else if(!strcmp(left->value, "free")) {
+        int cleared = free_vectable();
+        printf("Freed %d vectors\n", cleared);
+        return sentinel();
+    } else if(!strcmp(left->value, "list")) {
+        print_vectable();
+        return sentinel();
+    } else if(!strcmp(left->value, "help")) {
+        print_help();
+        return sentinel();
+    } else if(!strcmp(left->value, "clear")) {
+        printf("\033[2J"); // clear screen
+        printf("\033[H"); // go home
+        return sentinel();
+    } else if(!strcmp(left->value, "write")) {
+        // TODO: this is incorrect, the ast does not get built correctly for paths
+        write_vectable(right->value);
+    } else if(!strcmp(left->value, "read")) {
+        // TODO: this is incorrect, the ast does not get built correctly for paths
+        if(read_vectable(right->value) != 0) {
+            printf("Error: Bad argument to funtion 'read' (does the file exist?)\n");
+        };
     }
+    return sentinel();
 }
 
 /**
@@ -802,6 +835,9 @@ value evaluate_ast(node* n) {
     switch(n->type) {
         case(NODE_OPERATION):
             return handle_operation(n);
+            break;
+        case(NODE_EXECUTE):
+            return handle_execute(n);
             break;
         case(NODE_IDENTIFIER):
             return handle_identifier(n);
