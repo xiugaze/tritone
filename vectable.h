@@ -31,6 +31,7 @@
     void resize_vectable(int new_size);
     void insert_vector(char* key, vector value);
     void print_vectable();
+    void fill_vectable();
     int is_some(vt_option o);
     vt_option get_vector(char* key);
     void write_vectable();

@@ -279,7 +279,8 @@ static int is_command(char* cmd) {
         || !strcmp(cmd, "help")
         || !strcmp(cmd, "list")
         || !strcmp(cmd, "write")
-        || !strcmp(cmd, "read");
+        || !strcmp(cmd, "read")
+        || !strcmp(cmd, "fill");
 }
 
 /**
@@ -703,6 +704,8 @@ static value handle_execute(node* n) {
         } else {
             printf("Read %d vectors from %s\n", read, right->value);
         };
+    } else if(!strcmp(left->value, "fill")) {
+        fill_vectable();
     }
     return sentinel();
 }

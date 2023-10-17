@@ -173,8 +173,11 @@ void print_vectable() {
             found++;
         }
     }
+
     if(found == 0) {
         printf("No vectors are currently stored\n");
+    } else {
+        printf("Summary: %d stored vectors at a %0.4f load factor\n", table->size, load_factor());
     }
 }
 
@@ -220,3 +223,30 @@ int read_vectable(char* path) {
     fclose(fp);
     return read;
 };
+
+/**
+ * stolen from https://codereview.stackexchange.com/questions/29198/random-string-generator-in-c
+*/
+static char *rand_string(char *str, size_t size)
+{
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJK...";
+    if (size) {
+        --size;
+        for (size_t n = 0; n < size; n++) {
+            int key = rand() % (int) (sizeof charset - 1);
+            str[n] = charset[key];
+        }
+        str[size] = '\0';
+    }
+    return str;
+}
+
+void fill_vectable() {
+    for (int i = 0; i < 100000; i++) {
+        char* str = malloc(sizeof(char) * 13);
+        str = rand_string(str, 12);
+        vector v = { i, i, i };
+        insert_vector(str, v);
+        free(str);
+    }
+}
