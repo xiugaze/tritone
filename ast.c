@@ -228,6 +228,8 @@ static node* parse_identifier(token *tokens, int *position);
 static node* parse_constant(token *tokens, int *position);
 static node* parse_value(token *tokens, int *position);
 static node* parse_assignment(token* tokens, int* position);
+static node* parse_first_identifier(token* tokens, int* position);
+static node* parse_command(token* tokens, int* position);
 
 
 /**
@@ -287,14 +289,21 @@ static node* parse_first_identifier(token* tokens, int* position) {
     if(tokens[*position + 1].type == TOKEN_IDENTIFIER) {
         return parse_command(tokens, position);
     } else if(tokens[*position + 1].type == TOKEN_EQUALS) {
-        return parse_assignment(tokens, position) 
+        return parse_assignment(tokens, position); 
     } else {
         return NULL;
     }
 }
 
-static node* parse_command() {
-
+static node* parse_command(token* tokens, int* position) {
+    node* command = parse_identifier(tokens, position);
+    node* argument = parse_identifier(tokens, position);
+    return create_node(
+        NODE_EXECUTE,
+        "execute",
+        command, 
+        argument
+    );
 }
 
 /**

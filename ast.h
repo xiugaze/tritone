@@ -45,6 +45,7 @@
         NODE_IDENTIFIER,
         NODE_VECTOR,
         NODE_CONSTANT,
+        NODE_EXECUTE,
     } node_type;
 
     typedef struct node node;
