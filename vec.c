@@ -11,7 +11,6 @@
  */
 
 #include "vec.h"
-#include "vecvec.h"
 #include <stdio.h>
 #include <float.h>
 

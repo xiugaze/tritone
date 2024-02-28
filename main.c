@@ -14,46 +14,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "vec.h"
-#include "vecvec.h"
-#include "ast.h"
+#include "tritone.h"
+#include "vectable.h"
 
-char* tritone(void) {
 
-    static int started = 0;
-    if(!started) {
-        printf("\033[0;35m");
-        printf(" ____  ____  ____  ____  _____  _  _  ____    |\\\n");
-        printf("(_  _)(  _ \\(_  _)(_  _)(  _  )( \\( )( ___)   |/\n");
-        printf("  )(   )   / _)(_   )(   )(_)(  )  (  )__)   /|\n");
-        printf(" (__) (_)\\_)(____) (__) (_____)(_)\\_)(____) ('|)\n");
-        printf("  type 'help' for help                       \"| \n");
-        printf("\n\033[0m");
-        started = 1;
-
-    }
-    static char input_buffer[300];
-    static char output_buffer[300];
-
-    printf("\033[0;35m");
-    printf("tritone");
-    printf("\033[0m");
-    printf("> ");
-
-    fgets(input_buffer, 300, stdin);
-    node* root = parse_input(input_buffer);
-    strncpy(output_buffer, value_to_string(evaluate_ast(root)), 300);
-
-    free_ast(root);
-    return output_buffer;
-
-}
-
+/**
+ * @brief Entry point
+ * 
+ * @param arc 
+ * @param argv 
+ * @return int 
+ */
 int main(int arc, char** argv) {
+
     if(argv[1] && !strcmp("-h", argv[1])) {
         print_help();
         exit(0);
     }
+
+    atexit(tritone_exit);
+
+    vectable_init();
 
     do {
         printf("%s", tritone());

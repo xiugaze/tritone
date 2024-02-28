@@ -5,7 +5,7 @@
  * @brief Helper routines for parsing an input string, constructing
  * an abstract syntax tree according to context free grammar G,
  * and evaluating the tree to a final result. Assignments are expressions,
- * not statements, and evaluuate to the left hand side.
+ * not statements, and evaluate to the left hand side.
  *
  * 
  * Let G := 
@@ -31,7 +31,9 @@
 
 #include "ast.h"
 #include "vec.h"
-#include "vecvec.h"
+// #include "vecvec.h"
+#include "vectable.h"
+#include "tritone.h"
 
 /**
  * @brief Returns the next valid token in the input buffer 
@@ -51,6 +53,7 @@ token find_next_token(char* input, int* position) {
     token tok;
     tok.name = NULL;
 
+    // Switch case on characters: Single character operators or identifiers
     switch(cur) {
         case '+':
             tok.name = "+";
@@ -70,11 +73,6 @@ token find_next_token(char* input, int* position) {
         case '/':
             tok.name = "/";
             tok.type = TOKEN_SLASH;
-            (*position)++;
-            break;
-        case '.':
-            tok.name = ".";
-            tok.type = TOKEN_DOT;
             (*position)++;
             break;
         case 'X':
@@ -117,7 +115,18 @@ token find_next_token(char* input, int* position) {
             tok.type = TOKEN_RBRACKET;
             (*position)++;
             break;
+        case '.':
+            tok.name = ".";
+            tok.type = TOKEN_DOT;
+            (*position)++;
+            break;
+        case '"':
+            tok.name = "\"";
+            tok.type = TOKEN_QUOTE;
+            (*position)++;
+            break;
         default: 
+            // Identifiers must start with a letter and then can be alphanumeric
             if(isalpha(cur)) {
                 tok.type = TOKEN_IDENTIFIER;
                 
@@ -127,10 +136,14 @@ token find_next_token(char* input, int* position) {
                     size++;
                 }
 
+                // malloc the length of the identiifier + 1 for null terminator
                 tok.name = malloc(size + 1);
+                // copy name into malloced space
                 memcpy(tok.name, (input + (*position)), size);
                 tok.name[size] = '\0';
+                // advance the position pointer
                 (*position) += size;
+            // Constants always are numbers
             } else if (isdigit(cur) || cur == '.') {
                 // Parse numbers (integer or floating-point)
                 tok.type = TOKEN_CONST;
@@ -142,13 +155,16 @@ token find_next_token(char* input, int* position) {
                     size++;
                 }
 
+                // malloc the string length of the number + \0
                 tok.name = malloc(size + 1);
                 memcpy(tok.name, (input + (*position)), size);
                 tok.name[size] = '\0';
+                // advance the position pointer
                 (*position) += size;
 
             } else {
-                // not sure
+                printf("Invalid token %c at position %d, ignoring\n", 
+                    input[*position], *position);
             }
     }
     return tok;
@@ -161,10 +177,12 @@ token find_next_token(char* input, int* position) {
  * @return token* 
  */
 token* lex(char* input) {
+    static int capacity = 100;
     int position = 0;
-    int capacity = 100;
     int size = 0;
+    // maximum number of tokens is hardcoded to 100;
     token* tokens = malloc(capacity * sizeof(token));
+
     while(1) {
         token tok = find_next_token(input, &position);
 
@@ -174,6 +192,12 @@ token* lex(char* input) {
             break;
         }
     }
+
+    // for(int i = 0; i < size; i++) {
+    //     printf("%s: %d, ", tokens[i].name, tokens[i].type);
+    // }
+    // printf("\n");
+    // printf("Number of tokens: %d\n", size);
     return tokens;
 }
 
@@ -189,8 +213,16 @@ token* lex(char* input) {
  */
 node* create_node(node_type type, char* value, node* left, node* right) {
     node* n = (node*) malloc(sizeof(node));
+    // length + null pointer
+
+    if(value != NULL) {
+        n->value = malloc(strlen(value) + 1);
+        strcpy(n->value, value);
+    } else {
+        n->value = value;
+    }
+
     n->type = type;
-    n->value = value;
     n->left = left;
     n->right = right;
     n->is_root = 0;
@@ -198,14 +230,33 @@ node* create_node(node_type type, char* value, node* left, node* right) {
 }
 
 
-node* parse_statement(token *tokens, int *position);
-node* parse_expression(token *tokens, int *position);
-node* parse_term(token *tokens, int *position);
-node* parse_factor(token *tokens, int *position);
-node* parse_identifier(token *tokens, int *position);
-node* parse_constant(token *tokens, int *position);
-node* parse_value(token *tokens, int *position);
-node* parse_assignment(token* tokens, int* position);
+static node* parse_statement(token *tokens, int *position);
+static node* parse_expression(token *tokens, int *position);
+static node* parse_term(token *tokens, int *position);
+static node* parse_factor(token *tokens, int *position);
+static node* parse_identifier(token *tokens, int *position);
+static node* parse_constant(token *tokens, int *position);
+static node* parse_value(token *tokens, int *position);
+static node* parse_assignment(token* tokens, int* position);
+static node* parse_command(token* tokens, int* position);
+
+
+/**
+ * @brief Frees a list of tokens
+ * 
+ * @param tokens 
+ */
+void free_tokens(token* tokens) {
+    int cur = 0;
+    while(tokens[cur].type != TOKEN_END) {
+        if(tokens[cur].type == TOKEN_IDENTIFIER 
+            || tokens[cur].type == TOKEN_CONST) {
+            free(tokens[cur].name);
+        }
+        cur++;
+    }
+    free(tokens);
+}
 
 /**
  * @brief Lexes and parses an input string according to G
@@ -216,7 +267,26 @@ node* parse_assignment(token* tokens, int* position);
 node* parse_input(char* input) {
     token* tokens = lex(input);
     int position = 0;
-    return parse_statement(tokens, &position);
+    node* result = parse_statement(tokens, &position);
+    free_tokens(tokens);
+    return result;
+}
+
+/**
+ * @brief Returns true if cmd is a command
+ * 
+ * @param cmd 
+ * @return int 
+ */
+static int is_command(char* cmd) {
+    return !strcmp(cmd, "clear")
+        || !strcmp(cmd, "quit")
+        || !strcmp(cmd, "free")
+        || !strcmp(cmd, "help")
+        || !strcmp(cmd, "list")
+        || !strcmp(cmd, "write")
+        || !strcmp(cmd, "read")
+        || !strcmp(cmd, "fill");
 }
 
 /**
@@ -227,16 +297,76 @@ node* parse_input(char* input) {
  * @param position 
  * @return node* 
  */
-node* parse_statement(token *tokens, int* position) {
-    if(tokens[*position].type == TOKEN_IDENTIFIER 
-        && tokens[*position + 1].type == TOKEN_EQUALS) {
-        return parse_assignment(tokens, position);
+static node* parse_statement(token *tokens, int* position) {
+    if(is_command(tokens[*position].name)) {
+        return parse_command(tokens, position);
+    } else if(tokens[*position + 1].type == TOKEN_EQUALS) {
+        return parse_assignment(tokens, position); 
     } else if(tokens[*position].type == TOKEN_EQUALS) {
         printf("Error: assignment with no identifier\n");
         return NULL;
     } else {
         return parse_expression(tokens, position);
     }
+}
+
+
+/**
+ * @brief Tries to parse a quote-delimited string
+ * 
+ * @param tokens 
+ * @param position 
+ * @return node* 
+ */
+static node* parse_string(token* tokens, int* position) {
+    if(tokens[*position].type == TOKEN_QUOTE) {
+        // consume the quote
+        (*position)++;
+        char *string = calloc(200, sizeof(char));
+        string[0] = '\0';
+        while(tokens[*position].type != TOKEN_QUOTE) {
+            strcat(string, tokens[*position].name);
+            (*position)++;
+        }
+        // consume the quote
+        (*position)++;
+
+        node* n = create_node(
+            NODE_STRING,
+            string,
+            NULL,
+            NULL
+        );
+        // create_node performs a strcpy
+        free(string);
+        return n;
+    } else {
+        return NULL;
+    }
+}
+
+/**
+ * @brief Attempts to parse a command identifier
+ * 
+ * @param tokens 
+ * @param position 
+ * @return node* 
+ */
+static node* parse_command(token* tokens, int* position) {
+    node* command = parse_identifier(tokens, position);
+
+    node* argument; 
+    if(tokens[*position].type == TOKEN_CONST) {
+        argument = parse_constant(tokens, position);
+    } else {
+        argument = parse_string(tokens, position);
+    }
+    return create_node(
+        NODE_EXECUTE,
+        "execute",
+        command, 
+        argument
+    );
 }
 
 /**
@@ -247,7 +377,7 @@ node* parse_statement(token *tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_assignment(token* tokens, int* position) {
+static node* parse_assignment(token* tokens, int* position) {
     node* identifier = parse_identifier(tokens, position);
     (*position)++;  
     return create_node(
@@ -258,7 +388,7 @@ node* parse_assignment(token* tokens, int* position) {
     );
 }
 
-node* parse_expression(token* tokens, int* position) {
+static node* parse_expression(token* tokens, int* position) {
     node* term = parse_term(tokens, position);
     while(tokens[*position].type == TOKEN_PLUS 
        || tokens[*position].type == TOKEN_MINUS) {
@@ -277,7 +407,7 @@ node* parse_expression(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_term(token* tokens, int* position) {
+static node* parse_term(token* tokens, int* position) {
     node* factor = parse_factor(tokens, position);
 
     while(
@@ -302,7 +432,7 @@ node* parse_term(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_factor(token* tokens, int* position) {
+static node* parse_factor(token* tokens, int* position) {
     if(tokens[*position].type == TOKEN_LPAREN) {
         (*position)++;  // consume ()
         node* expression = parse_expression(tokens, position);
@@ -326,7 +456,7 @@ node* parse_factor(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_constant(token* tokens, int* position) {
+static node* parse_constant(token* tokens, int* position) {
     char* value = tokens[(*position)].name;
     (*position )++;
     return create_node(NODE_CONSTANT, value, NULL, NULL);
@@ -341,7 +471,7 @@ node* parse_constant(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_value(token* tokens, int* position) {
+static node* parse_value(token* tokens, int* position) {
     if(tokens[*position].type == TOKEN_CONST) {
         node* i = parse_constant(tokens, position);
         if(tokens[*position].type == TOKEN_COMMA) {
@@ -387,8 +517,6 @@ node* parse_value(token* tokens, int* position) {
 }
 
 
-
-
 /**
  * @brief Parses an identifier and returns it's node
  * 
@@ -397,7 +525,7 @@ node* parse_value(token* tokens, int* position) {
  * @param position 
  * @return node* 
  */
-node* parse_identifier(token* tokens, int* position) {
+static node* parse_identifier(token* tokens, int* position) {
     char* name = tokens[(*position)].name;
     (*position)++;
     return create_node(NODE_IDENTIFIER, name, NULL, NULL);
@@ -414,6 +542,10 @@ void free_ast(node* n) {
         return;
     }
 
+    if(n->value != NULL) {
+        free(n->value);
+    }
+
     free_ast(n->left);
     free_ast(n->right);
     free(n);
@@ -425,7 +557,7 @@ void free_ast(node* n) {
  * @param node 
  * @param depth 
  */
-void print_ast_recursive(node* node, int depth) {
+static void print_ast_recursive(node* node, int depth) {
     if (node == NULL) {
         return;
     }
@@ -459,7 +591,7 @@ void print_ast(node* root) {
  * @param v 
  * @return value 
  */
-value make_value_from_vector(vector v) {
+static value make_value_from_vector(vector v) {
     value r;
     r.type = VAL_VECTOR;
     r.vec = v;
@@ -472,7 +604,7 @@ value make_value_from_vector(vector v) {
  * @param f 
  * @return value 
  */
-value make_value_from_scalar(float f) {
+static value make_value_from_scalar(float f) {
     value r;
     r.type = VAL_SCALAR;
     r.scalar = f;
@@ -484,7 +616,7 @@ value make_value_from_scalar(float f) {
  * 
  * @return value 
  */
-value sentinel() {
+static value sentinel() {
     value r ;
     r.type = VAL_SENTINEL;
     return r;
@@ -496,7 +628,7 @@ value sentinel() {
  * @param s 
  * @return int 
  */
-int is_sentinel(value s) {
+static int is_sentinel(value s) {
     return s.type == VAL_SENTINEL;
 }
 
@@ -527,7 +659,7 @@ char* value_to_string(value v) {
  * @param n 
  * @return value 
  */
-value handle_asssignemnt(node* n) {
+static value handle_assignment(node* n) {
     if(n->left == NULL || n->left->type != NODE_IDENTIFIER || n->right == NULL) {
         return sentinel();
     }
@@ -535,40 +667,19 @@ value handle_asssignemnt(node* n) {
     value result = evaluate_ast(n->right);
     if(!is_sentinel(result)) {
         if(result.type == VAL_VECTOR) {
-            insert_vector(result.vec, n->left->value);
+            // CHANGE
+            insert_vector(n->left->value, result.vec);
             return result;
         } else {
             printf("Warning: Cannot assign scalar to variable\n");
             printf("Assigning scalar as field i\n");
             vector v = {result.scalar, 0, 0};
-            insert_vector(v, n->left->value);
-            value r;
-            r.type = VAL_VECTOR;
-            r.vec = v;
-            return r;
+            insert_vector(n->left->value, v);
+            return(make_value_from_vector(v));
         }
     } else {
         return sentinel();
     }
-
-}
-
-/**
- * @brief Prints the help text
- * 
- */
-void print_help() {
-    printf("tritone: very bad vector calculator\n" 
-           "- store a vector: a = 1, 2, 3\n"
-           "- scalar operations: 1+2, 6-9, 5*3, 9/1,\n"
-           "- vector operations: a + b, a + (1, 2, 3 * c)\n" 
-           "\t-supports addition, subtraction, scalar multiplication," 
-           " scalar division, cross product, dot product.\n"
-           " help: print this message\n"
-           " clear: clear the screen\n"
-           " free: free all variables\n"
-           " list: list all variables\n"
-           );
 }
 
 /**
@@ -578,33 +689,56 @@ void print_help() {
  * @param n 
  * @return value 
  */
-value handle_identifier(node* n) {
-    if(!strcmp(n->value, "quit")) {
-        exit(0);
-    } else if(!strcmp(n->value, "free")) {
-        int cleared = clear_vectors();
-        printf("Freed %d vectors\n", cleared);
-        return sentinel();
-    } else if(!strcmp(n->value, "list")) {
-        list_vectors();
-        return sentinel();
-    } else if(!strcmp(n->value, "help")) {
-        print_help();
-        return sentinel();
-    } else if(!strcmp(n->value, "clear")) {
-        printf("\033[2J"); // clear screen
-        printf("\033[H"); // go home
-
-        return sentinel();
-    } else {
-        vec_cell* v = get_vector(n->value);
-        if(v != NULL) {
-            return make_value_from_vector(v->vec);
+static value handle_identifier(node* n) {
+        vt_option v = get_vector(n->value);
+        if(is_some(v)) {
+            return make_value_from_vector(v.value.value);
         } else {
             printf("Error: no vector found named %s\n", n->value);
             return sentinel();
         }
+}
+
+/**
+ * @brief 
+ * Handles the NODE_EXECUTE case
+ * @param n 
+ * @return value 
+ */
+static value handle_execute(node* n) {
+    node* left = n->left;
+    node* right = n->right;
+    if(!strcmp(left->value, "quit")) {
+        exit(0);
+    } else if(!strcmp(left->value, "free")) {
+        int cleared = clear_vectable();
+        printf("Freed %d vectors\n", cleared);
+        return sentinel();
+    } else if(!strcmp(left->value, "list")) {
+        print_vectable();
+        return sentinel();
+    } else if(!strcmp(left->value, "help")) {
+        print_help();
+        return sentinel();
+    } else if(!strcmp(left->value, "clear")) {
+        printf("\033[2J"); // clear screen
+        printf("\033[H"); // go home
+        return sentinel();
+    } else if(!strcmp(left->value, "write")) {
+        // TODO: this is incorrect, the ast does not get built correctly for paths
+        write_vectable(right->value);
+    } else if(!strcmp(left->value, "read")) {
+        // TODO: this is incorrect, the ast does not get built correctly for paths
+        int read = 0;
+        if((read = read_vectable(right->value)) < 0) {
+            printf("Error: Bad argument to funtion 'read' (does the file exist?)\n");
+        } else {
+            printf("Read %d vectors from %s\n", read, right->value);
+        };
+    } else if(!strcmp(left->value, "fill")) {
+        fill_vectable(atoi(right->value));
     }
+    return sentinel();
 }
 
 /**
@@ -613,7 +747,7 @@ value handle_identifier(node* n) {
  * @param n 
  * @return value 
  */
-value handle_operation(node*n) {
+static value handle_operation(node*n) {
     value left = evaluate_ast(n->left);
     value right = evaluate_ast(n->right);
 
@@ -714,7 +848,7 @@ value handle_operation(node*n) {
  * @param n 
  * @return value 
  */
-value handle_vector(node* n) {
+static value handle_vector(node* n) {
     float i = atof(n->left->value);
     float j = atof(n->right->left->value);
     float k = atof(n->right->right->value);
@@ -739,11 +873,14 @@ value evaluate_ast(node* n) {
         case(NODE_OPERATION):
             return handle_operation(n);
             break;
+        case(NODE_EXECUTE):
+            return handle_execute(n);
+            break;
         case(NODE_IDENTIFIER):
             return handle_identifier(n);
             break;
         case(NODE_ASSIGNMENT):
-            return handle_asssignemnt(n);
+            return handle_assignment(n);
             break;
         case(NODE_VECTOR):
             return handle_vector(n);
